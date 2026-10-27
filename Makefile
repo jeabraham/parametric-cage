@@ -21,8 +21,13 @@ TARGETS_STL := $(patsubst %,${OUTDIR}/%.stl,${MAIN_MODULES}) \
 all: 3mf
 
 3mf: ${TARGETS_3MF}
+	@printf "\n==> Build complete in '%s/'.\n" "${OUTDIR}"
+	@printf "Note: Generated .3mf files contain pure 3D CAD geometry (no embedded printer profiles).\n"
+	@printf "If Bambu Studio or OrcaSlicer reports 'invalid config, load geometry data only',\n"
+	@printf "click OK to apply your active printer and filament settings to the model.\n\n"
 
 stl: ${TARGETS_STL}
+	@printf "\n==> STL build complete in '%s/'.\n\n" "${OUTDIR}"
 
 # Convenience shortcuts (default to 3MF)
 cage:  ${OUTDIR}/make_cage.3mf

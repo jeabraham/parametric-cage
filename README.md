@@ -28,10 +28,21 @@ The original author's notes:
 
 ## Usage
 
-1. Open `main.scad` in [OpenSCAD](https://openscad.org/). A recent development snapshot with the **Manifold** backend enabled (Preferences → Advanced → Backend) is strongly recommended; full CSG renders then complete in seconds.
+1. Open `main.scad` in [OpenSCAD](https://openscad.org/). A recent development snapshot with the **Manifold** backend enabled (Preferences → Features → manifold) is strongly recommended; full CSG renders then complete in seconds.
 2. Open the Customizer (Window → Customizer) and configure your dimensions.
-3. Render (F6) and export the STL. Set `separate_parts = 1` to lay out the cage and base ring side - by - side for printing.
-4. Alternatively, build STLs directly from the terminal using the provided `Makefile` via `make`.
+3. Render (F6) and export your preferred format. Set `separate_parts = 1` to lay out the cage and base ring side - by - side for printing.
+4. Alternatively, build ready - to - print files from the terminal using the provided `Makefile`:
+   - `make` (or `make 3mf`): Builds all parts, the sizing rings, and the ruler in `.3mf` format into the `build/` directory.
+   - `make stl`: Builds all models in `.stl` format into `build/`.
+   - Specific targets: `make cage`, `make base`, `make bolt`, `make nut`, `make rings`, or `make ruler`.
+
+### Note on `.3mf` in Bambu Studio / OrcaSlicer
+
+OpenSCAD exports pure 3D CAD geometry in the standard 3MF specification. Slicers like Bambu Studio and OrcaSlicer also use the `.3mf` extension for full project archives that include proprietary printer and filament profiles. When opening a CAD - generated `.3mf`, Bambu Studio will prompt:
+
+> *"The 3mf file has invalid config, load geometry data only"*
+
+This is expected behavior — click **OK** to load the model onto the build plate using your currently active printer, nozzle, and filament presets. If you prefer importing without prompts, run `make stl` to generate `.stl` files instead.
 
 Preview (F5) is deliberately optimized to remain fast and responsive.
 
