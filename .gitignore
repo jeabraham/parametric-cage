@@ -1,4 +1,7 @@
-
+build/
+output/
 *.deps
 *.stl
+*.3mf
 *.generated.scad
+.DS_Store

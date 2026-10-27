@@ -62,7 +62,7 @@ cage_bar_thickness = 4; // [4:8]
 cage_bar_count = 8;
 
 // Replace the bars with a solid wall along the same shape
-solid_wall = 0; // [0: Bars, 1: Solid wall]
+solid_wall = 1; // [0: Bars, 1: Solid wall]
 
 // Thickness of the solid wall, measured outward from the cage diameter
 solid_wall_thickness = 2; // [1.2:0.1:8]
