@@ -1,7 +1,8 @@
-TARGETS=$(shell sed '/^module [a-z0-9_-]*().*make..\?me.*$$/!d;s/module //;s/().*/.stl/' main.scad)
+OPENSCAD ?= $(shell which openscad 2>/dev/null || find /Applications/OpenSCAD*.app -name OpenSCAD 2>/dev/null | head -n1 || echo openscad)
+TARGETS=$(shell sed -E '/^module [a-z0-9_-]+\(\).*make ?me.*$$/!d;s/module //;s/\(\).*/.stl/' main.scad)
 
 GENERATED_FILES = 	$(wildcard *.deps) \
-					$(wildcard *.stl) \
+					${TARGETS} \
 					$(wildcard *.generated.scad)
 
 .phony: all clean
@@ -16,10 +17,10 @@ include $(wildcard *.deps)
 	echo 'use <main.scad>\n$*();' > $@
 
 %.stl: %.generated.scad
-	openscad -DFN=64 -m make -o $@ -d $@.deps $<
+	${OPENSCAD} -DFN=64 -m make -o $@ -d $@.deps $<
 
 image:
-	openscad -DFN=32 --render --camera 7,3,5,70,0,50,265 --imgsize 1600,1000 -o main.png main.scad
+	${OPENSCAD} -DFN=32 --render --camera 7,3,5,70,0,50,265 --imgsize 1600,1000 -o main.png main.scad
 
 clean:
 	rm -rf ${GENERATED_FILES}

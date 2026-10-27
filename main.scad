@@ -30,6 +30,9 @@ use <torus.scad>
 // Use separate module for computing points along the cage path
 use <vec3math.scad>
 
+// Use metric threads for printable lock hardware
+use <threads.scad>
+
 /* [General] */
 
 // Render cage and ring separately
@@ -139,6 +142,21 @@ lock_clockwise = 1; // [1: Clockwise, 0: Counterclockwise]
 // Fusion 360 lock: Show the lock in place (preview only)
 show_lock = 0; // [0: No, 1: Unlocked, 2: Locked]
 
+// Render 3D-printable threaded bolt and nut for the lock (Stealth lock type)
+do_bolt = 0; // [0: No, 1: Yes]
+
+// Threaded bolt length of thread
+bolt_thread_length = 4;
+
+// Bolt shaft radius
+bolt_diameter = 3;
+
+// Bolt thread diameter
+bolt_thread_diameter = 6;
+
+// Total shaft length of bolt
+lock_shaft_l = 26;
+
 /* [Clearances] */
 
 // If your lock fits too tightly in the casing, add some space around it here
@@ -241,6 +259,15 @@ module make() {
   cage();
   make_base();
   if (lock_type == 1 && show_lock) %lock_position() fusion_lock_body(show_lock == 2 ? lock_turn : 0, lock_clockwise);
+  if (do_bolt) {
+    if (separate_parts_effective) {
+      translate([cage_diameter + 15, -15, 0]) lock_bolt();
+      translate([cage_diameter + 15, 15, 0]) lock_nut();
+    } else {
+      lock_bolt_assembled();
+      lock_nut_assembled();
+    }
+  }
 }
 
 module make_cage() //make me
@@ -254,6 +281,57 @@ module make_base() //make me
   translate(baseOrigin) {
     dz(-gap) dx(R2+r2-R1-r1-gap*tan(tilt)) scale([1, 1, base_ring_flatten_factor]) base_ring();
     lock_dovetail_outer();
+  }
+}
+
+module make_lock_bolt() //make me
+{
+  lock_bolt();
+}
+
+module make_lock_nut() //make me
+{
+  lock_nut();
+}
+
+// Standalone printable lock bolt, sitting flat on its head on XY plane
+module lock_bolt() {
+  union() {
+    cylinder(r=bolt_thread_diameter, h=bolt_thread_length + 1, $fn=8);
+    translate([0, 0, bolt_thread_length + 1])
+      cylinder(r=bolt_diameter, h=lock_shaft_l-bolt_thread_length);
+    translate([0, 0, lock_shaft_l + 1])
+      metric_thread(diameter=bolt_thread_diameter, pitch=1, length=bolt_thread_length);
+  }
+}
+
+// Standalone printable lock nut, sitting flat on its base on XY plane
+module lock_nut() {
+  difference() {
+    cylinder(r=bolt_thread_diameter, h=bolt_thread_length + 1, $fn=8);
+    translate([0, 0, 2])
+      metric_thread(diameter=bolt_thread_diameter + part_margin, pitch=1, length=bolt_thread_length);
+  }
+}
+
+// Lock bolt positioned in place in the assembled cage
+module lock_bolt_assembled() {
+  ry(tilt) translate([-R1-r3-mount_width/2-lock_lateral+1, 25-mount_length/2, lock_vertical - 7]) {
+    rotate([90, 0, 0]) union() {
+      metric_thread(diameter=bolt_thread_diameter, pitch=1, length=bolt_thread_length);
+      translate([0, 0, bolt_thread_length]) cylinder(r=bolt_diameter, h=lock_shaft_l-bolt_thread_length);
+      translate([0, 0, lock_shaft_l]) cylinder(r=bolt_thread_diameter, h=bolt_thread_length + 1, $fn=8);
+    }
+  }
+}
+
+// Lock nut positioned in place in the assembled cage
+module lock_nut_assembled() {
+  ry(tilt) translate([-R1-r3-mount_width/2-lock_lateral+1, lock_shaft_l-bolt_thread_length*2, lock_vertical - 7]) {
+    rotate([90, 0, 0]) difference() {
+      cylinder(r=bolt_thread_diameter, h=bolt_thread_length + 1, $fn=8);
+      translate([0, 0, 2]) metric_thread(diameter=bolt_thread_diameter + part_margin, pitch=1, length=bolt_thread_length);
+    }
   }
 }
 

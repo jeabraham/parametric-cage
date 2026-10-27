@@ -45,6 +45,8 @@ The model supports two locking options configured via `lock_type`:
 
 Uses the Holy - Trainer - style cylinder and rotating cam cavity defined in `stealth_lock.scad`. It features updated 3.5 mm cylinder clearance and 120° cam sweep for reliable latching. A printable pin (`play-pin.stl`) is included for temporary retention without inserting a metal lock core.
 
+Additionally, a 3D - printable threaded lock bolt and blind cap nut can be enabled via `do_bolt = 1` (ported from Glambi's fork). The bolt passes directly through the lock shaft and secures with the octagonal cap nut, keeping threads protected from skin and clothing. Standalone STLs can be generated using `make make_lock_bolt.stl make_lock_nut.stl`.
+
 ### 2. Fusion 360 Lock (`lock_type = 1`)
 
 ![Lock case with the keyhole](images/lock.png)
@@ -95,7 +97,7 @@ When printed ring - down, the top plate functions as a wide bridge. With `flat_b
 | Cage | `penis_length`, `cage_bar_thickness`, `cage_bar_count`, `solid_wall`, `solid_wall_thickness`, `slit_width`, `slit_start`, `slit_end`, `bend_point_x`, `bend_point_z` | Bar geometry, solid wall options, and curvature bend |
 | Flat top | `flat_wall_height`, `flat_plate_thickness`, `flat_center_hole`, `flat_hole_count`, `flat_hole_diameter`, `flat_hole_radius`, `flat_bridge_layer`, `flat_bridge_layer_thickness` | Flat cap dimensions, hole pattern, and bridging layer |
 | Base ring | `base_ring_diameter`, `base_ring_thickness`, `base_ring_flatten_factor`, `base_ring_roundness`, `wavy_base`, `wave_angle` | Base ring diameter, thickness, roundness, flattening factor, and wave contour |
-| Lock | `lock_type`, `lock_key_depth`, `lock_clockwise`, `show_lock` | Choice of stealth or Fusion 360 lock, orientation, and preview |
+| Lock | `lock_type`, `lock_key_depth`, `lock_clockwise`, `show_lock`, `do_bolt`, `bolt_thread_length`, `bolt_diameter`, `bolt_thread_diameter`, `lock_shaft_l` | Choice of stealth or Fusion 360 lock, orientation, preview, and 3D - printable threaded fastener hardware |
 | Clearances | `lock_margin`, `part_margin` | Fit tolerances for lock cavity and sliding dovetail joints |
 
 Legacy parameter names (`separateParts`, `wavyBase`, `waveAngle`) continue to be supported as backward - compatible fallbacks.
@@ -105,6 +107,9 @@ Legacy parameter names (`separateParts`, `wavyBase`, `waveAngle`) continue to be
 | File | Contents |
 |---|---|
 | `main.scad` | The primary parametric cage model with full Customizer support |
+| `parametric cage gauge - rings.scad` | Printable concentric sizing rings in 5 mm increments (Ø30 - Ø65 mm) for gauging base ring fit |
+| `parametric cage gauge - length.scad` | Printable measuring rod with 10 mm incremental depth markers for gauging length |
+| `threads.scad` | Metric threads library by Dan Kirshner used to generate 3D - printable lock bolts and nuts |
 | `fusion_lock.scad` | Dimensions, cavity cutter, and preview model for the Fusion 360 lock |
 | `stealth_lock.scad` | The Holy - Trainer - style stealth lock module |
 | `play-pin.stl` | 3D - printable play pin for temporary latching with the stealth lock |
