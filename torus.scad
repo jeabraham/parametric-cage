@@ -38,3 +38,19 @@ module torus(R, r, phi=360, rounded=false, center=false) {
     }
   }
 }
+
+// Rectangular cross-section w x h, centered, with corners rounded by roundness*min(w,h)/2
+// (roundness=0: sharp rectangle, roundness=1: fully rounded ends; a circle when w=h)
+module ring_profile(w, h, roundness) {
+  k = max(min(roundness, 1), 0)*min(w, h)/2;
+  if (k < 0.01) {
+    square([w, h], center=true);
+  } else {
+    hull() for (x = [-1, 1], y = [-1, 1]) translate([x*(w/2-k), y*(h/2-k)]) circle(k);
+  }
+}
+
+// Torus with a ring_profile() cross-section, centered on its major radius R and on z=0
+module profile_torus(R, w, h, roundness=1, phi=360) {
+  rotate_extrude(convexity=4, angle=phi) translate([R, 0]) ring_profile(w, h, roundness);
+}
