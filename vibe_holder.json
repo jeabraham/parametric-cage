@@ -1,0 +1,23 @@
+{
+    "fileFormatVersion": "1",
+    "parameterSets": {
+        "Try 2": {
+            "$fn": "32",
+            "lug_drop": "4",
+            "lug_gap": "20",
+            "lug_thick": "4",
+            "outer_radius": "5",
+            "part_margin": "0.20000000000000001",
+            "pin_dia": "2",
+            "screen_radius": "4",
+            "show_cutaway": "0",
+            "show_watch": "0",
+            "wall_end": "1.5",
+            "wall_side": "3",
+            "watch_body_length": "42.600000000000001",
+            "watch_body_width": "36",
+            "watch_thickness": "10",
+            "watch_total_length": "48.700000000000003"
+        }
+    }
+}

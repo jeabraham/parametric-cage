@@ -5,6 +5,9 @@
 // Part clearance tolerance (mm)
 part_margin = 0.2; // [0.05:0.05:0.5]
 
+// Lug slot extra clearance (mm)
+lug_slot_margin = 0.6; // [0.2:0.1:1.2]
+
 /* [Watch Dimensions] */
 // Watch body length (excluding lugs, mm)
 watch_body_length = 42.6;
@@ -24,8 +27,8 @@ lug_drop = 4.0;
 // Watch band lug spacing (inner width between lugs, mm)
 lug_gap = 20.0;
 
-// Individual lug thickness (mm)
-lug_thick = 2.8;
+// Individual lug width/thickness (mm)
+lug_thick = 3.5;
 
 // Lug pin hole diameter (mm)
 pin_dia = 2.0;
@@ -36,12 +39,6 @@ wall_side = 3.0;
 
 // End wall thickness beyond lugs (mm)
 wall_end = 1.5;
-
-// Bottom retaining shelf lip (inward retention lip at bottom, mm)
-bottom_lip = 1.2;
-
-// Bottom retaining shelf thickness (mm)
-bottom_lip_thickness = 1.5;
 
 // Corner rounding radius on outer box (mm)
 outer_radius = 3.0;
@@ -73,10 +70,16 @@ cavity_t = watch_thickness + part_margin;
 // Outer holder dimensions
 box_w = cavity_w + 2*wall_side;
 box_l = cavity_total_l + 2*wall_end;
-box_t = cavity_t + bottom_lip_thickness;
+box_t = cavity_t;
 
 // Lug extension beyond main body at each end
 lug_ext = (watch_total_length - watch_body_length) / 2;
+
+// Lug slot width with clearance
+lug_slot_w = lug_thick + 2*lug_slot_margin;
+
+// Y center position of lugs
+lug_y_pos = (lug_gap + lug_thick) / 2;
 
 ////////////////////////////////////
 //
@@ -112,7 +115,6 @@ module watch_mockup() {
   l = watch_body_length;
   tl = watch_total_length;
   t = watch_thickness;
-  lw = lug_gap;
   
   color("dimgray", 0.9) {
     difference() {
@@ -120,16 +122,13 @@ module watch_mockup() {
         // 1. Main body
         rounded_prism_z(l, w, t, 2.5, center=false);
         
-        // 2. Lugs at both ends (4mm down from top face)
-        // Top face of watch is at Z = t
-        // Top of lugs is at Z = t - lug_drop
+        // 2. Lugs at both ends (4mm down from top face, 3.5mm wide)
         for (end = [-1, 1]) {
           for (side = [-1, 1]) {
-            // Position lugs
-            lug_y = side * (lw/2 + lug_thick/2);
+            lug_y = side * lug_y_pos;
             lug_x = end * (l/2 + lug_ext/2);
-            translate([lug_x, lug_y, t - lug_drop - 2.5])
-              rounded_prism_z(lug_ext + 1, lug_thick, 4.5, 1.2, center=true);
+            translate([lug_x, lug_y, t - lug_drop - 2.25])
+              rounded_prism_z(lug_ext + 0.8, lug_thick, 4.5, 1.0, center=true);
           }
         }
         
@@ -149,7 +148,7 @@ module watch_mockup() {
         
       // Spring bar holes in lugs (diameter 1.5mm)
       for (end = [-1, 1]) {
-        translate([end * (tl/2 - 1.5), 0, t - lug_drop - 2.5])
+        translate([end * (tl/2 - 1.5), 0, t - lug_drop - 2.25])
           rotate([90, 0, 0])
             cylinder(d=1.5, h=w + 2, center=true);
       }
@@ -163,43 +162,35 @@ module watch_mockup() {
 //
 
 module vibe_holder_outer() {
-  // Outer solid block
   rounded_prism_z(box_l, box_w, box_t, outer_radius, center=false);
 }
 
 module vibe_holder_cavity() {
-  // Coordinate frame:
-  // Z = 0 is bottom face of holder
-  // Z = bottom_lip_thickness is bottom of watch cavity
-  // Z = bottom_lip_thickness + cavity_t is top face of watch / inner roof
-  // Z = box_t is top face of holder
-  
-  // 1. Top opening for touch screen (42.6+tol x 36+tol)
-  // Cuts completely through the top face
-  translate([0, 0, bottom_lip_thickness])
-    rounded_prism_z(cavity_l, cavity_w, cavity_t + 5, screen_radius, center=false);
-    
-  // 2. Lug channels / cavity (extends to cavity_total_l = 48.7+tol)
-  // The lugs are 4mm down from top face, so this cavity is capped by the 4mm ceiling at ends
+  // 1. Main watch body pocket + top opening for touch screen (42.6+tol x 36+tol)
+  // Passes completely through from bottom (Z = -1) to top (Z = box_t + 1)
+  // Top opening is perfectly clean, rectangular with rounded corners!
   translate([0, 0, -1])
-    rounded_prism_z(cavity_total_l, cavity_w, bottom_lip_thickness + cavity_t - lug_drop + 1, 1.5, center=false);
+    rounded_prism_z(cavity_l, cavity_w, box_t + 2, screen_radius, center=false);
     
-  // 3. Bottom sliding entrance:
-  // The watch slides in from the bottom.
-  // The entrance opening at Z=0 allows the watch body to enter.
-  // A subtle perimeter retention lip (bottom_lip) supports the back edges,
-  // or is open across the main center so the sensor contacts the skin.
-  translate([0, 0, -1])
-    rounded_prism_z(cavity_total_l - 2*bottom_lip, cavity_w - 2*bottom_lip, bottom_lip_thickness + 2, 2.0, center=false);
+  // 2. Dedicated lug clearance slots at each end:
+  // Open at bottom (Z = -1) so the watch and lugs slide in smoothly together from below.
+  // Stops at Z = box_t - lug_drop, so the top face has ZERO holes over the lugs!
+  // In the center 20mm (|Y| < 10) and corners (|Y| > 13.5), the shorter walls are THICK!
+  lug_slot_len = lug_ext + part_margin + 0.2;
+  lug_slot_h = box_t - lug_drop + 1;
+  for (end = [-1, 1]) {
+    for (side = [-1, 1]) {
+      translate([end * (cavity_l/2 + lug_slot_len/2 - 0.1), side * lug_y_pos, -1])
+        rounded_prism_z(lug_slot_len + 0.2, lug_slot_w, lug_slot_h, 1.0, center=false);
+    }
+  }
     
-  // 4. Spring bar pin holes (transverse along Y)
-  // Placed right at the watch lug pin positions:
-  // Z position: bottom_lip_thickness + cavity_t - lug_drop - 2.5
-  pin_z = bottom_lip_thickness + cavity_t - lug_drop - 2.5;
+  // 3. Spring bar pin holes (transverse along Y)
+  // Passes through the outer corners, through the lug slots, and through the thick center wall
+  pin_z = box_t - lug_drop - 2.25;
   for (end = [-1, 1]) {
     pin_x = end * (watch_total_length/2 - 1.5);
     translate([pin_x, 0, pin_z]) {
-      // Pin hole through entire width of holder
       rotate([90, 0, 0])
         cylinder(d=pin_dia, h=box_w + 5, center=true);
     }
@@ -222,13 +213,12 @@ module vibe_holder() {
 module scene() {
   vibe_holder();
   if (show_watch) {
-    // Position watch inside cavity
-    translate([0, 0, bottom_lip_thickness])
+    translate([0, 0, 0])
       watch_mockup();
   }
 }
 
-// Handle cutaway views for inspection
+// Cutaway and inspection modes
 if (show_cutaway == 1) {
   // XZ cutaway (cuts front half Y > 0)
   difference() {
