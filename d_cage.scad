@@ -68,7 +68,7 @@ solid_wall = 1; // [0: Bars, 1: Solid wall]
 solid_wall_thickness = 2; // [1.2:0.1:8]
 
 // Width of the slit at the front opening
-slit_width = 10; // [0:40]
+slit_width = 9; // [0:40]
 
 // Solid wall: where the slit starts, in degrees over the dome from its base on the lock side (90 = the tip)
 slit_start = 55; // [0:1:180]
@@ -112,7 +112,7 @@ vibe_screen_length = 43.0; // [15:0.5:40]
 vibe_screen_width = 36.0; // [15:0.5:36]
 
 // Solid roof margin above lock block before screen window starts (mm)
-vibe_screen_margin_z = 8.0; // [2:0.5:15]
+vibe_screen_margin_z = 5.0; // [2:0.5:15]
 
 // Show watch preview inside the D-shape chamber
 show_vibe_watch = 1; // [0: No, 1: Yes]
@@ -123,19 +123,19 @@ show_cutaway = 0; // [0: None, 1: XZ Cutaway]
 /* [Ventilation Slots] */
 
 // Optional ventilation slots on the left and right sides of the solid cage
-vent_slots = 0; // [0: None, 1: Enabled]
+vent_slots = 1; // [0: None, 1: Enabled]
 
 // Number of ventilation slots per side
 vent_slot_count = 2; // [1:4]
 
 // Height of each ventilation slot (mm)
-vent_slot_height = 3.0; // [1.5:0.5:6]
+vent_slot_height = 4.0; // [1.5:0.5:6]
 
 // Starting position of ventilation slots along the shaft (mm)
-vent_slot_start = 8.0; // [4:0.5:30]
+vent_slot_start = 5.5; // [4:0.5:30]
 
 // Ending position of ventilation slots along the shaft (mm)
-vent_slot_end = 36.0; // [10:0.5:60]
+vent_slot_end = 32.5; // [10:0.5:60]
 
 /* [Flat top] */
 
