@@ -19,7 +19,7 @@ watch_body_width = 36.0;
 watch_total_length = 48.7;
 
 // Watch body thickness (mm)
-watch_thickness = 11.2;
+watch_thickness = 10;
 
 // Vertical drop from top glass face to top of lugs (mm)
 lug_drop = 4.0;
@@ -28,7 +28,7 @@ lug_drop = 4.0;
 lug_gap = 20.0;
 
 // Individual lug width/thickness (mm)
-lug_thick = 3.5;
+lug_thick = 4.0;
 
 // Lug pin hole diameter (mm)
 pin_dia = 2.0;
@@ -41,10 +41,10 @@ wall_side = 3.0;
 wall_end = 1.5;
 
 // Corner rounding radius on outer box (mm)
-outer_radius = 3.0;
+outer_radius = 6.5;
 
 // Corner rounding radius on top screen opening (mm)
-screen_radius = 2.5;
+screen_radius = 5.0;
 
 /* [Preview Options] */
 // Show watch mockup inside holder
