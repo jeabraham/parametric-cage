@@ -68,19 +68,19 @@ solid_wall = 1; // [0: Bars, 1: Solid wall]
 solid_wall_thickness = 2; // [1.2:0.1:8]
 
 // Width of the slit at the front opening
-slit_width = 14; // [0:40]
+slit_width = 10; // [0:40]
 
 // Solid wall: where the slit starts, in degrees over the dome from its base on the lock side (90 = the tip)
-slit_start = 0; // [0:1:180]
+slit_start = 55; // [0:1:180]
 
 // Solid wall: where the slit ends, in degrees over the dome from its base on the lock side (180 = base on the far side)
 slit_end = 180; // [0:1:180]
 
 // X-axis coordinate of the bend point (the center of the arc the cage bends around)
-bend_point_x = 30; // [0:0.1:200]
+bend_point_x = 45; // [0:0.1:200]
 
 // Z-axis coordinate of the bend point (the center of the arc the cage bends around)
-bend_point_z = 5; // [0:0.1:200]
+bend_point_z = 20; // [0:0.1:200]
 
 /* [D-Shape Cage / Vibe Chamber] */
 
@@ -149,7 +149,7 @@ flat_bridge_layer_thickness = 0.2; // [0.1:0.05:0.6]
 /* [Base ring] */
 
 // Base ring diameter
-base_ring_diameter = 42; // [30:75]
+base_ring_diameter = 45; // [30:75]
 
 // Thickness of base ring 
 base_ring_thickness = 8.0; // [6.0:0.5:10.0]
@@ -766,47 +766,93 @@ module lock_dovetail_inner() {
   }
 }
 
-// 2D common-tangent bridge between upper edge of lock holder and body side of base ring
+// 2D common-tangent bridge between lock holder and body side of base ring
+//
+// In this 2D module (XZ cross-section plane):
+//   - The 2D X-axis represents the 3D X-axis (radial: negative is lock/dorsal, positive is ventral).
+//   - The 2D Y-axis represents the 3D Z-axis (height: negative is base ring, positive is glans).
+//   - The convex hull between two circles produces the exact mathematical external common-tangent line!
+//   - The 3D module below extrudes this 2D profile across width w (along 3D Y-axis).
+
 module lock_tangent_bridge_2d() {
-  c_lock_x = -3 - R1 - lock_offset_x - r3 - mount_width/2;
-  c_lock_z = mount_height * cos(tilt) - lock_case_upper_radius;
-  r_lock = lock_case_upper_radius;
 
+  // ==============================================================================
+  // TOP EDGE ANCHOR (CHOOSE ONE OPTION):
+  // ==============================================================================
+
+  // --- OPTION A (COMMENTED OUT): Tangent to the TOP rounded cylinder of the lock case ---
+  // This targets the upper crest of the lock assembly at Z = mount_height * cos(tilt) ≈ 17.8mm.
+  // c_lock_x = -3 - R1 - lock_offset_x - r3 - mount_width/2;
+  // c_lock_z = mount_height * cos(tilt) - lock_case_upper_radius;
+  // r_lock = lock_case_upper_radius; // 9.0mm
+
+  // --- OPTION B (ACTIVE): Tangent to the LOWER-OUTER rounded corner of the lock case ---
+  // This targets the rounded corner closest to the wearer's body (at Z ≈ -2.8mm, X ≈ -35.4mm).
+  // Because Z <= -r3, it stays completely below the cage entrance and never cuts into the watch chamber!
+  r_lock = 11.0; // matches lower_radius in lock_case_shape (outer lock piece)
+  c_lock_x = -R1 - lock_offset_x - r3 - mount_width/2 - lock_case_upper_radius + r_lock -5;
+  c_lock_z = r_lock - 2*r3; // matches (lower_radius - r3 - extra) where extra = r3
+
+  // ==============================================================================
+  // BASE RING WIRE ANCHOR (TANGENT TO BODY SIDE):
+  // ==============================================================================
+  // Center of the circular base ring in 3D X:
   ring_cx = R2 + r2 - R1 - r1 - gap * tan(tilt);
-  c_ring_x = ring_cx - (R2 + r2);
-  c_ring_z = -gap;
-  r_ring = r2;
 
+  // Center of the base ring wire cross-section directly under the lock (-X side):
+  c_ring_x = ring_cx - (R2 + r2); // X position of the ring wire center
+  c_ring_z = -gap;                // Z position of the ring center (-12mm)
+  r_ring = r2;                    // Radius of the ring wire cross-section (4mm)
+
+  // ==============================================================================
+  // SLIDING PLANE:
+  // ==============================================================================
+  // The vertical sliding face where the cage dovetail slides down onto the base ring:
   slide_x = -(R1 + lock_offset_x + r3 + mount_width/2);
 
   difference() {
-    // 1. Convex hull of the lock top cylinder and base ring wire produces the exact external common tangent!
+    // ----------------------------------------------------------------------------
+    // 1. CONVEX HULL: Produces the exact external common-tangent between both circles!
+    // ----------------------------------------------------------------------------
     hull() {
+      // Circle at the lock anchor (Option A or Option B above):
       translate([c_lock_x, c_lock_z])
         circle(r=r_lock, $fn=64);
+
+      // Circle at the base ring wire (tangent to the body side):
       translate([c_ring_x, c_ring_z])
         circle(r=r_ring, $fn=64);
     }
     
-    // 2. Clear the sliding face above Z = -r3 so the cage slides freely onto the dovetail
+    // ----------------------------------------------------------------------------
+    // 2. SLIDING CLEARANCE: Clear above Z = -r3 and X > slide_x so the cage can slide down
+    // ----------------------------------------------------------------------------
     translate([slide_x, -r3])
       square([50, 50]);
       
-    // 3. Clear the inner bore of the base ring
+    // ----------------------------------------------------------------------------
+    // 3. INNER BORE CLEARANCE: Clear the inner circle of the base ring (radius R2)
+    // ----------------------------------------------------------------------------
+    // Guarantees zero support material can ever intrude into the scrotal/penis bore!
     translate([ring_cx, c_ring_z])
       circle(r=R2, $fn=64);
       
-    // 4. Clear below the base ring wire so the body side remains smooth
+    // ----------------------------------------------------------------------------
+    // 4. UNDERSIDE CLEARANCE: Clear below the bottom of the base ring wire
+    // ----------------------------------------------------------------------------
+    // Guarantees the body-facing underside of the ring remains smooth and rounded!
     translate([c_ring_x - 50, -gap - 50])
       square([100, 50 - r_ring]);
   }
 }
 
+// 3D extrusion of the 2D profile across width w (along 3D Y-axis):
 module lock_tangent_bridge_3d(w) {
   rotate([90, 0, 0])
     linear_extrude(height=w, center=true)
       lock_tangent_bridge_2d();
 }
+
 
 module lock_dovetail_outer() {
   bridge_w = d_shape ? (20.0 - 2*part_margin) : mount_length;
