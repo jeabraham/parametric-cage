@@ -868,6 +868,7 @@ module lock_tangent_bridge_3d(w) {
 
 module lock_dovetail_outer() {
   bridge_w = d_shape ? (20.0 - 2*part_margin) : mount_length;
+  slot_w = mount_length/3 + 2*part_margin;
   union() {
     // 1. Outer lock dovetail wings
     intersection () {
@@ -897,10 +898,11 @@ module lock_dovetail_outer() {
       } else {
         lock_cavity();
       }
-      // Ensure the cage's inner dovetail sliding track is clear
-      dz(-r3) skewxz(tan(tilt))
-        translate([-100, -(mount_length/6 + part_margin), -r3])
-          cube([150, 2*(mount_length/6 + part_margin), mount_height*cos(tilt) + 2*r3]);
+      // Subtract where the cage part of the lock mechanism goes (and slides down):
+      hull() {
+        lock_case_shape(slot_w);
+        dz(mount_height*cos(tilt) + 10) lock_case_shape(slot_w);
+      }
     }
   }
 }
