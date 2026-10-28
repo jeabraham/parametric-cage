@@ -326,7 +326,8 @@ module make_cage() //make me
 
 module make_base() //make me
 {
-  baseOrigin = separate_parts_effective ? [-base_ring_diameter-cage_diameter, 0, gap] : [0, 0, 0];
+  base_sep_dist = base_ring_diameter + cage_diameter + lock_offset_x + 20;
+  baseOrigin = separate_parts_effective ? [-base_sep_dist, 0, gap] : [0, 0, 0];
   translate(baseOrigin) {
     dz(-gap) dx(R2+r2-R1-r1-gap*tan(tilt)) scale([1, 1, base_ring_flatten_factor]) base_ring();
     lock_dovetail_outer();
@@ -426,11 +427,16 @@ module cage() {
           }
         } else {
           cage_solid_wall();
-          // Cage ring, sheared with the tilt like the wall: inner surface flush with the wall,
-          // outer edge where the barred cage's ring has it. At a steep tilt it would reach past
-          // the plane the lock pieces slide on, so it is trimmed there too
+          // Cage entrance collar: continuous rounded rim around the entire entrance
           difference() {
-            skewxz(tan(tilt)) profile_torus(R1+(r1+r3)/2, r1+r3, 2*r3, base_ring_roundness*r2/(r1+r3)*2);
+            if (d_shape) {
+              skewxz(tan(tilt))
+                linear_extrude(height=2*r3, center=true)
+                  offset(r=r3)
+                    d_section_2d(R1, vibe_extra_height, vibe_top_width, vibe_corner_radius);
+            } else {
+              skewxz(tan(tilt)) profile_torus(R1+(r1+r3)/2, r1+r3, 2*r3, base_ring_roundness*r2/(r1+r3)*2);
+            }
             lock_slide_clearance();
           }
         }
@@ -458,11 +464,17 @@ module vibe_watch_in_cage() {
       color("darkslategray", 0.9)
         rounded_cube([vibe_watch_thickness, 36.0, vibe_watch_length], 2.5, center=true);
         
-    // Glans side lugs: extending forward from vibe_watch_length
     lug_y = (20.0 + 3.5) / 2;
     lug_x = -(R1 + vibe_extra_height - 4.0 - 2.25);
+    // Glans side lugs: extending forward from vibe_watch_length
     for (side = [-1, 1]) {
       translate([lug_x, side * lug_y, vibe_watch_length + 3.05/2])
+        color("slategray", 0.9)
+          rounded_cube([4.5, 3.5, 3.05], 1.0, center=true);
+    }
+    // Body side lugs: extending backward from Z = 0 to straddle the connecting block
+    for (side = [-1, 1]) {
+      translate([lug_x, side * lug_y, -3.05/2])
         color("slategray", 0.9)
           rounded_cube([4.5, 3.5, 3.05], 1.0, center=true);
     }
@@ -754,33 +766,84 @@ module lock_dovetail_inner() {
   }
 }
 
+// 2D common-tangent bridge between upper edge of lock holder and body side of base ring
+module lock_tangent_bridge_2d() {
+  c_lock_x = -3 - R1 - lock_offset_x - r3 - mount_width/2;
+  c_lock_z = mount_height * cos(tilt) - lock_case_upper_radius;
+  r_lock = lock_case_upper_radius;
+
+  ring_cx = R2 + r2 - R1 - r1 - gap * tan(tilt);
+  c_ring_x = ring_cx - (R2 + r2);
+  c_ring_z = -gap;
+  r_ring = r2;
+
+  slide_x = -(R1 + lock_offset_x + r3 + mount_width/2);
+
+  difference() {
+    // 1. Convex hull of the lock top cylinder and base ring wire produces the exact external common tangent!
+    hull() {
+      translate([c_lock_x, c_lock_z])
+        circle(r=r_lock, $fn=64);
+      translate([c_ring_x, c_ring_z])
+        circle(r=r_ring, $fn=64);
+    }
+    
+    // 2. Clear the sliding face above Z = -r3 so the cage slides freely onto the dovetail
+    translate([slide_x, -r3])
+      square([50, 50]);
+      
+    // 3. Clear the inner bore of the base ring
+    translate([ring_cx, c_ring_z])
+      circle(r=R2, $fn=64);
+      
+    // 4. Clear below the base ring wire so the body side remains smooth
+    translate([c_ring_x - 50, -gap - 50])
+      square([100, 50 - r_ring]);
+  }
+}
+
+module lock_tangent_bridge_3d(w) {
+  rotate([90, 0, 0])
+    linear_extrude(height=w, center=true)
+      lock_tangent_bridge_2d();
+}
+
 module lock_dovetail_outer() {
-  intersection () {
-    difference() {
-      union() {
-        dy(mount_length/3) lock_case_shape(mount_length/3, outer=true);
-        my() dy(mount_length/3) lock_case_shape(mount_length/3, outer=true);
+  bridge_w = d_shape ? (20.0 - 2*part_margin) : mount_length;
+  union() {
+    // 1. Outer lock dovetail wings
+    intersection () {
+      difference() {
+        union() {
+          dy(mount_length/3) lock_case_shape(mount_length/3, outer=true);
+          my() dy(mount_length/3) lock_case_shape(mount_length/3, outer=true);
+        }
+        // Cut a cavity for the lock module
+        if (lock_type == 0) {
+          sy(1.01) lock_cavity();
+        } else {
+          lock_cavity();
+        }
       }
-      // Cut a cavity for the lock module
+      union() {
+        dz(-r3) skewxz(tan(tilt)) dz(-r3) mx() dx(R1+lock_offset_x+r3+mount_width/2 + part_margin) dy(-mount_length/2) rounded_cube([50, mount_length/3, mount_height*cos(tilt)+2*r3], rounding);
+        my() dz(-r3) skewxz(tan(tilt)) dz(-r3) mx() dx(R1+lock_offset_x+r3+mount_width/2 + part_margin) dy(-mount_length/2) rounded_cube([50, mount_length/3, mount_height*cos(tilt)+2*r3], rounding);
+      }
+    }
+    // 2. Pure common-tangent bridge connecting base ring to the lock body
+    difference() {
+      lock_tangent_bridge_3d(bridge_w);
+      // Cut lock cavity through the bridge if it intersects
       if (lock_type == 0) {
         sy(1.01) lock_cavity();
       } else {
         lock_cavity();
       }
+      // Ensure the cage's inner dovetail sliding track is clear
+      dz(-r3) skewxz(tan(tilt))
+        translate([-100, -(mount_length/6 + part_margin), -r3])
+          cube([150, 2*(mount_length/6 + part_margin), mount_height*cos(tilt) + 2*r3]);
     }
-    union() {
-      dz(-r3) skewxz(tan(tilt)) dz(-r3) mx() dx(R1+lock_offset_x+r3+mount_width/2 + part_margin) dy(-mount_length/2) rounded_cube([50, mount_length/3, mount_height*cos(tilt)+2*r3], rounding);
-      my() dz(-r3) skewxz(tan(tilt)) dz(-r3) mx() dx(R1+lock_offset_x+r3+mount_width/2 + part_margin) dy(-mount_length/2) rounded_cube([50, mount_length/3, mount_height*cos(tilt)+2*r3], rounding);
-    }
-  }
-  // Solid full-width bridge between the lock part and the base ring:
-  hull() {
-    // Upper connection: bottom of lock body across full mount_length
-    translate([-R1 - lock_offset_x - r3 - mount_width/2 - lock_case_lower_radius, -mount_length/2, -r3 - 1])
-      rounded_cube([mount_width + lock_case_lower_radius + 6, mount_length, r3 + 1], 1.5);
-    // Lower connection: embedded into base ring across full mount_length
-    translate([-R1 - r1 - gap*tan(tilt) - 2*r2 - 1, -mount_length/2, -gap - r2])
-      rounded_cube([2*r2 + 4, mount_length, 2*r2], 1.5);
   }
 }
 
