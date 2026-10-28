@@ -45,10 +45,10 @@ flat_top = 0; // [0: Cage, 1: Flat]
 cage_diameter = 27; // [26:40]
 
 // Tilt angle of the cage at the base ring
-tilt = 8; // [0:30]
+tilt = 11; // [0:30]
 
 // Gap between the bottom of the cage and the base ring
-gap = 12; // [10:20]
+gap = 13; // [10:20]
 
 /* [Cage] */
 
@@ -119,6 +119,23 @@ show_vibe_watch = 1; // [0: No, 1: Yes]
 
 // Show cross-section cutaway (preview only)
 show_cutaway = 0; // [0: None, 1: XZ Cutaway]
+
+/* [Ventilation Slots] */
+
+// Optional ventilation slots on the left and right sides of the solid cage
+vent_slots = 0; // [0: None, 1: Enabled]
+
+// Number of ventilation slots per side
+vent_slot_count = 2; // [1:4]
+
+// Height of each ventilation slot (mm)
+vent_slot_height = 3.0; // [1.5:0.5:6]
+
+// Starting position of ventilation slots along the shaft (mm)
+vent_slot_start = 8.0; // [4:0.5:30]
+
+// Ending position of ventilation slots along the shaft (mm)
+vent_slot_end = 36.0; // [10:0.5:60]
 
 /* [Flat top] */
 
@@ -213,9 +230,6 @@ separate_parts_effective = !is_undef(separateParts) ? separateParts : separate_p
 // Glans cage height (minimum is cage radius)
 glans_cage_height = cage_diameter/2.2; // [15:50]
 
-// Lock elevation offset along X axis (raised to make room for vibe area)
-lock_offset_x = d_shape ? vibe_extra_height : 0;
-
 // Variables affecting the lock case
 lock_case_upper_radius = 9;
 lock_case_lower_radius = 4;
@@ -252,6 +266,9 @@ R2 = base_ring_diameter/2;
 r1 = cage_bar_thickness/2;
 r2 = base_ring_thickness/2;
 r3 = cage_ring_thickness/2;
+
+// Lock elevation offset along X axis (adjusted so lock sliding plane is flush with the flat top of the cage)
+lock_offset_x = d_shape ? (vibe_extra_height + solid_wall_thickness - (r3 + mount_width/2)) : 0;
 
 // Length of cage
 cage_length = max(penis_length-gap, glans_cage_height+(R1+r1)*sin(tilt));
@@ -447,12 +464,33 @@ module cage() {
         if (vibe_screen_opening) vibe_screen_window();
         vibe_glans_lug_indents();
       }
+      if (solid_wall && vent_slots) cage_vent_slots();
     }
   } else {
     cage_bar_segments(); // The bars
     glans_cap(); // The cap
     profile_torus(R1+r1, 2*r3, 2*r3, base_ring_roundness*r2/r3); // Cage base ring, same edge radius as the base ring
     cage_lock(); // The part where the lock goes
+  }
+}
+
+// Optional ventilation slots through the left and right walls of the cage
+module cage_vent_slots() {
+  vent_slot_len = max(1.0, vent_slot_end - vent_slot_start);
+  slot_z_center = vent_slot_start + vent_slot_len / 2;
+  skewxz(tan(tilt)) {
+    for (i = [0 : vent_slot_count - 1]) {
+      // Space slots along X in the lower half of the cage wall around the penis bore
+      slot_x = (vent_slot_count == 1) ? 0 : (-R1/3 + i * (R1 * 0.8) / max(1, vent_slot_count - 1));
+      translate([slot_x, 0, slot_z_center]) {
+        for (side = [-1, 1]) {
+          // Span 40mm along Y to cut completely through both the outer and inner walls
+          translate([0, side * 15, 0])
+            rotate([90, 0, 0])
+              rounded_cube([vent_slot_height, vent_slot_len, 40], vent_slot_height/2 - 0.1, center=true);
+        }
+      }
+    }
   }
 }
 
