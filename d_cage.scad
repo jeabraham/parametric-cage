@@ -311,13 +311,16 @@ $fa = $preview ? 6 : 2;
 $fs = $preview ? 1 : 0.4;
 $fn = !is_undef(FN) ? FN : 0;
 
-if (show_cutaway == 1) {
-  difference() {
+do_make = is_undef(render_make) ? 1 : render_make;
+if (do_make) {
+  if (show_cutaway == 1) {
+    difference() {
+      make();
+      translate([0, -50, 0]) cube([250, 100, 250], center=true);
+    }
+  } else {
     make();
-    translate([0, -50, 0]) cube([250, 100, 250], center=true);
   }
-} else {
-  make();
 }
 
 module make() {
@@ -456,21 +459,33 @@ module cage() {
             }
             lock_slide_clearance();
           }
+          if (d_shape) vibe_watch_case_outer();
         }
         cage_lock();
       }
       cage_cavity();
       if (d_shape) {
+        vibe_watch_pocket();
         if (vibe_screen_opening) vibe_screen_window();
-        vibe_glans_lug_indents();
       }
       if (solid_wall && vent_slots) cage_vent_slots();
     }
   } else {
-    cage_bar_segments(); // The bars
-    glans_cap(); // The cap
-    profile_torus(R1+r1, 2*r3, 2*r3, base_ring_roundness*r2/r3); // Cage base ring, same edge radius as the base ring
-    cage_lock(); // The part where the lock goes
+    // Bars version:
+    difference() {
+      union() {
+        cage_bar_segments(); // The bars
+        glans_cap(); // The cap
+        profile_torus(R1+r1, 2*r3, 2*r3, base_ring_roundness*r2/r3); // Cage base ring, same edge radius as the base ring
+        cage_lock(); // The part where the lock goes
+        if (d_shape) vibe_watch_case_outer();
+      }
+      if (d_shape) {
+        cage_volume(R1, open_bottom=true);
+        vibe_watch_pocket();
+        if (vibe_screen_opening) vibe_screen_window();
+      }
+    }
   }
 }
 
@@ -519,31 +534,68 @@ module vibe_watch_in_cage() {
   }
 }
 
-// Viewing/interaction window: full length forward from the lock block to the glans side of the watch
+// Outer solid housing for the watch, extending along the tilted shaft to fully enclose the watch
+module vibe_watch_case_outer() {
+  t = solid_wall_thickness;
+  pm = part_margin;
+  lug_ext = 3.05;
+  lug_len_clear = lug_ext + pm + 0.5;
+  case_z_end = vibe_watch_length + lug_len_clear + t + 2.0; // ~50.5mm
+  
+  box_w = vibe_top_width + 2*t;
+  box_h = vibe_extra_height + 2*t;
+  x_center = -(R1 + vibe_extra_height/2);
+  
+  skewxz(tan(tilt)) {
+    translate([x_center, 0, case_z_end/2])
+      rounded_cube([box_h, box_w, case_z_end], 2.5, center=true);
+  }
+}
+
+// Inner cavity for the watch body and glans lugs
+module vibe_watch_pocket() {
+  pm = part_margin;
+  lug_ext = 3.05;
+  lug_len_clear = lug_ext + pm + 0.5;
+  
+  skewxz(tan(tilt)) {
+    // 1. Watch body pocket: from Z = -1 to Z = vibe_watch_length + pm
+    cavity_t = vibe_watch_thickness + pm;
+    cavity_w = vibe_top_width;
+    cavity_l = vibe_watch_length + pm;
+    
+    translate([-(R1 + vibe_watch_thickness/2), 0, cavity_l/2 - 0.5])
+      rounded_cube([cavity_t, cavity_w, cavity_l + 1], 1.5, center=true);
+      
+    // 2. Glans lug cavity: from vibe_watch_length to vibe_watch_length + lug_len_clear
+    lug_y = (20.0 + 3.5) / 2;
+    lug_w = 4.8;
+    lug_h = 5.5;
+    lug_x = -(R1 + vibe_extra_height - 4.0 - lug_h/2);
+    z_lug_start = vibe_watch_length - 0.5;
+    z_lug_len = lug_len_clear + 0.5;
+    
+    for (side = [-1, 1]) {
+      translate([lug_x, side * lug_y, z_lug_start + z_lug_len/2])
+        rounded_cube([lug_h, lug_w, z_lug_len], 1.0, center=true);
+    }
+    // Center clearance between lugs
+    translate([lug_x, 0, z_lug_start + z_lug_len/2])
+      rounded_cube([lug_h, 20.0 - 2*pm, z_lug_len], 1.0, center=true);
+  }
+}
+
+// Viewing/interaction window: full length forward from the lock block to the retaining bezel
 module vibe_screen_window() {
   win_z_start = mount_height * cos(tilt);
-  win_len = vibe_watch_length - win_z_start + 0.5;
-  win_w = 31.0; // full viewing width with retaining side rails
+  // Retaining bezel: stop 3mm before the watch body ends so the watch is securely retained from above
+  win_z_end = vibe_watch_length - 3.0;
+  win_len = win_z_end - win_z_start;
+  win_w = 31.0; // full viewing width with 2.7mm retaining side rails
   if (win_len > 0) {
     skewxz(tan(tilt))
       translate([-(R1 + vibe_extra_height + solid_wall_thickness/2), 0, win_z_start + win_len/2])
         rounded_cube([solid_wall_thickness + 4, win_w, win_len], 2.5, center=true);
-  }
-}
-
-// Lug indents on the glans side of the watch cavity (pushes through the front if cage is short)
-module vibe_glans_lug_indents() {
-  lug_y = (20.0 + 3.5) / 2; // 11.75mm
-  lug_w = 4.8; // generous width clearance for 3.5mm lug
-  lug_h = 5.2; // vertical clearance
-  lug_x = -(R1 + vibe_extra_height - 4.0 - lug_h/2);
-  z_start = vibe_watch_length - 0.5;
-  z_len = 25.0; // extends forward to push through dome if cage is short
-  skewxz(tan(tilt)) {
-    for (side = [-1, 1]) {
-      translate([lug_x, side * lug_y, z_start + z_len/2])
-        rounded_cube([lug_h, lug_w, z_len], 1.2, center=true);
-    }
   }
 }
 
@@ -723,11 +775,12 @@ module cage_bar_segments() {
     translate(straightSegStart) ry(segAngle) cylinder(r=r1, h=segLength);
     
     // Make a torus between straightSegEnd and curveSegEnd, if necessary
-    if (Phi>0) {
+    if (Phi > 0.05) {
       // First, find the angle between the ends of the curve
       vec1 = [straightSegEnd.x, 0, straightSegEnd.z]-P;
       vec2 = [curveSegEnd.x, 0, curveSegEnd.z]-P;
-      curveAngle = acos(dot(vec1, vec2)/(norm(vec1)*norm(vec2)));
+      cos_val = dot(vec1, vec2)/(norm(vec1)*norm(vec2));
+      curveAngle = acos(max(-1, min(1, cos_val)));
       curveRad = norm(vec1);
       translate(straightSegEnd) ry(-180+tilt) dx(-curveRad) rx(90) torus(curveRad, r1, -curveAngle, rounded=true);
     }
