@@ -834,7 +834,7 @@ module lock_tangent_bridge_2d() {
   r_ring = r2;
 
   // Sliding plane of the dovetail:
-  slide_x = -(R1 + lock_offset_x + r3 + mount_width/2);
+  slide_x = -(R1 + lock_offset_x + r3 + mount_width/2 + part_margin);
 
   difference() {
     // 1. Common-tangent hull between the lock anchor and the base ring wire:
@@ -846,7 +846,7 @@ module lock_tangent_bridge_2d() {
     }
     
     // 2. Clear sliding face above Z = -r3 so the cage slides freely:
-    translate([slide_x, -r3])
+    translate([slide_x, -r3 - part_margin])
       square([50, 50]);
       
     // 3. Clear inner bore of base ring:
@@ -900,8 +900,8 @@ module lock_dovetail_outer() {
       }
       // Subtract where the cage part of the lock mechanism goes (and slides down):
       hull() {
-        lock_case_shape(slot_w);
-        dz(mount_height*cos(tilt) + 10) lock_case_shape(slot_w);
+        dz(-part_margin) dx(-part_margin) lock_case_shape(slot_w);
+        dz(mount_height*cos(tilt) + 10) dx(-part_margin) lock_case_shape(slot_w);
       }
     }
   }
