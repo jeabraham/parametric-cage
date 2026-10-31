@@ -112,7 +112,7 @@ vibe_screen_length = 43.0; // [15:0.5:40]
 vibe_screen_width = 36.0; // [15:0.5:36]
 
 // Solid roof margin above lock block before screen window starts (mm)
-vibe_screen_margin_z = 5.0; // [2:0.5:15]
+vibe_screen_margin_z = 2.0; // [2:0.5:15]
 
 // Show watch preview inside the D-shape chamber
 show_vibe_watch = 1; // [0: No, 1: Yes]
@@ -214,8 +214,14 @@ lock_shaft_l = 26;
 
 /* [Clearances] */
 
-// If your lock fits too tightly in the casing, add some space around it here
-lock_margin = 0.1; // [0:0.01:1]
+// Hole radius clearance around lock cylinder (mm)
+lock_margin = 0.25; // [0:0.01:1]
+
+// Extra vertical slot play in inner dovetail lock hole along sliding axis to absorb 3D print layer variations (mm)
+lock_vertical_play = 0.0; // [0:0.05:1.5]
+
+// Side clearance margin per side for inner dovetail sliding between outer wings (mm)
+lock_dovetail_margin = 0.3; // [0:0.05:1]
 
 // If the two parts slide too stiffly, add some space here
 part_margin = 0.2; // [0:0.01:1]
@@ -446,20 +452,23 @@ module cage() {
             lock_slide_clearance();
           }
         } else {
-          cage_solid_wall();
-          // Cage entrance collar: continuous rounded rim around the entire entrance
+          // Trim solid wall, collar, and watch case back to the sliding plane so the base part's lock wings slide freely
           difference() {
-            if (d_shape) {
-              skewxz(tan(tilt))
-                linear_extrude(height=2*r3, center=true)
-                  offset(r=r3)
-                    d_section_2d(R1, vibe_extra_height, vibe_top_width, vibe_corner_radius);
-            } else {
-              skewxz(tan(tilt)) profile_torus(R1+(r1+r3)/2, r1+r3, 2*r3, base_ring_roundness*r2/(r1+r3)*2);
+            union() {
+              cage_solid_wall();
+              // Cage entrance collar: continuous rounded rim around the entire entrance
+              if (d_shape) {
+                skewxz(tan(tilt))
+                  linear_extrude(height=2*r3, center=true)
+                    offset(r=r3)
+                      d_section_2d(R1, vibe_extra_height, vibe_top_width, vibe_corner_radius);
+                vibe_watch_case_outer();
+              } else {
+                skewxz(tan(tilt)) profile_torus(R1+(r1+r3)/2, r1+r3, 2*r3, base_ring_roundness*r2/(r1+r3)*2);
+              }
             }
             lock_slide_clearance();
           }
-          if (d_shape) vibe_watch_case_outer();
         }
         cage_lock();
       }
@@ -478,7 +487,12 @@ module cage() {
         glans_cap(); // The cap
         profile_torus(R1+r1, 2*r3, 2*r3, base_ring_roundness*r2/r3); // Cage base ring, same edge radius as the base ring
         cage_lock(); // The part where the lock goes
-        if (d_shape) vibe_watch_case_outer();
+        if (d_shape) {
+          difference() {
+            vibe_watch_case_outer();
+            lock_slide_clearance();
+          }
+        }
       }
       if (d_shape) {
         cage_volume(R1, open_bottom=true);
@@ -509,25 +523,27 @@ module cage_vent_slots() {
   }
 }
 
-// Watch seated inside the D-shape chamber, resting against the back (body side) at Z = 0
+// Watch seated inside the D-shape chamber, resting against the ring assembly at Z = -r3
 module vibe_watch_in_cage() {
+  z_watch_base = -r3;
+  z_watch_end = z_watch_base + vibe_watch_length;
   skewxz(tan(tilt)) {
-    // Watch body: from Z = 0 to Z = vibe_watch_length
-    translate([-(R1 + vibe_watch_thickness/2), 0, vibe_watch_length/2])
+    // Watch body: from z_watch_base to z_watch_end
+    translate([-(R1 + vibe_watch_thickness/2), 0, z_watch_base + vibe_watch_length/2])
       color("darkslategray", 0.9)
         rounded_cube([vibe_watch_thickness, 36.0, vibe_watch_length], 2.5, center=true);
         
     lug_y = (20.0 + 3.5) / 2;
     lug_x = -(R1 + vibe_extra_height - 4.0 - 2.25);
-    // Glans side lugs: extending forward from vibe_watch_length
+    // Glans side lugs: extending forward from z_watch_end
     for (side = [-1, 1]) {
-      translate([lug_x, side * lug_y, vibe_watch_length + 3.05/2])
+      translate([lug_x, side * lug_y, z_watch_end + 3.05/2])
         color("slategray", 0.9)
           rounded_cube([4.5, 3.5, 3.05], 1.0, center=true);
     }
-    // Body side lugs: extending backward from Z = 0 to straddle the connecting block
+    // Body side lugs: extending backward from z_watch_base to straddle the connecting bridge
     for (side = [-1, 1]) {
-      translate([lug_x, side * lug_y, -3.05/2])
+      translate([lug_x, side * lug_y, z_watch_base - 3.05/2])
         color("slategray", 0.9)
           rounded_cube([4.5, 3.5, 3.05], 1.0, center=true);
     }
@@ -539,16 +555,19 @@ module vibe_watch_case_outer() {
   t = solid_wall_thickness;
   pm = part_margin;
   lug_ext = 3.05;
-  lug_len_clear = lug_ext + pm + 0.5;
-  case_z_end = vibe_watch_length + lug_len_clear + t + 2.0; // ~50.5mm
+  lug_len_clear = lug_ext + pm + 0.3;
+  z_watch_base = -r3;
+  z_watch_end = z_watch_base + vibe_watch_length;
+  case_z_end = z_watch_end + lug_len_clear + t; // ~45.75mm
+  case_len = case_z_end - z_watch_base;
   
   box_w = vibe_top_width + 2*t;
   box_h = vibe_extra_height + 2*t;
   x_center = -(R1 + vibe_extra_height/2);
   
   skewxz(tan(tilt)) {
-    translate([x_center, 0, case_z_end/2])
-      rounded_cube([box_h, box_w, case_z_end], 2.5, center=true);
+    translate([x_center, 0, z_watch_base + case_len/2])
+      rounded_cube([box_h, box_w, case_len], 2.0, center=true);
   }
 }
 
@@ -556,24 +575,26 @@ module vibe_watch_case_outer() {
 module vibe_watch_pocket() {
   pm = part_margin;
   lug_ext = 3.05;
-  lug_len_clear = lug_ext + pm + 0.5;
+  lug_len_clear = lug_ext + pm + 0.3;
+  z_watch_base = -r3;
+  z_watch_end = z_watch_base + vibe_watch_length;
   
   skewxz(tan(tilt)) {
-    // 1. Watch body pocket: from Z = -1 to Z = vibe_watch_length + pm
+    // 1. Watch body pocket: from z_watch_base to z_watch_end + pm
     cavity_t = vibe_watch_thickness + pm;
     cavity_w = vibe_top_width;
     cavity_l = vibe_watch_length + pm;
     
-    translate([-(R1 + vibe_watch_thickness/2), 0, cavity_l/2 - 0.5])
-      rounded_cube([cavity_t, cavity_w, cavity_l + 1], 1.5, center=true);
+    translate([-(R1 + vibe_watch_thickness/2), 0, z_watch_base + cavity_l/2])
+      rounded_cube([cavity_t, cavity_w, cavity_l], 1.5, center=true);
       
-    // 2. Glans lug cavity: from vibe_watch_length to vibe_watch_length + lug_len_clear
+    // 2. Glans lug cavity: from z_watch_end to z_watch_end + lug_len_clear
     lug_y = (20.0 + 3.5) / 2;
     lug_w = 4.8;
     lug_h = 5.5;
     lug_x = -(R1 + vibe_extra_height - 4.0 - lug_h/2);
-    z_lug_start = vibe_watch_length - 0.5;
-    z_lug_len = lug_len_clear + 0.5;
+    z_lug_start = z_watch_end - 0.2;
+    z_lug_len = lug_len_clear + 0.4;
     
     for (side = [-1, 1]) {
       translate([lug_x, side * lug_y, z_lug_start + z_lug_len/2])
@@ -582,20 +603,30 @@ module vibe_watch_pocket() {
     // Center clearance between lugs
     translate([lug_x, 0, z_lug_start + z_lug_len/2])
       rounded_cube([lug_h, 20.0 - 2*pm, z_lug_len], 1.0, center=true);
+      
+    // 3. Body-side lug clearance: extending backward from z_watch_base to straddle bridge
+    for (side = [-1, 1]) {
+      translate([lug_x, side * lug_y, z_watch_base - lug_len_clear/2])
+        rounded_cube([lug_h, lug_w, lug_len_clear + 0.5], 1.0, center=true);
+    }
   }
 }
 
-// Viewing/interaction window: full length forward from the lock block to the retaining bezel
+// Viewing/interaction window: full length forward from the lock block to the end of the watch body
 module vibe_screen_window() {
+  t = solid_wall_thickness;
+  pm = part_margin;
+  z_watch_base = -r3;
+  z_watch_end = z_watch_base + vibe_watch_length;
   win_z_start = mount_height * cos(tilt);
-  // Retaining bezel: stop 3mm before the watch body ends so the watch is securely retained from above
-  win_z_end = vibe_watch_length - 3.0;
+  // Extend window to the end of the watch body (+ pm) so the haptic button is fully accessible:
+  win_z_end = z_watch_end + pm;
   win_len = win_z_end - win_z_start;
   win_w = 31.0; // full viewing width with 2.7mm retaining side rails
   if (win_len > 0) {
     skewxz(tan(tilt))
-      translate([-(R1 + vibe_extra_height + solid_wall_thickness/2), 0, win_z_start + win_len/2])
-        rounded_cube([solid_wall_thickness + 4, win_w, win_len], 2.5, center=true);
+      translate([-(R1 + vibe_extra_height + t/2), 0, win_z_start + win_len/2])
+        rounded_cube([t + 4, win_w, win_len], 2.5, center=true);
   }
 }
 
@@ -834,26 +865,47 @@ module lock_position() {
   dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical) dy(mount_length/2-lock_key_depth) rz(90) children();
 }
 
-// Cut a cavity for the lock module
-module lock_cavity() {
-  if (lock_type == 0) {
-    dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical) dy(19-mount_length/2) {
-      stealth_lock(lock_margin);
-      rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19);
+// Cut a cavity for the lock module (with optional vertical elongation slop along sliding axis)
+module lock_cavity(z_slop=0) {
+  if (z_slop == 0) {
+    if (lock_type == 0) {
+      dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical) dy(19-mount_length/2) {
+        stealth_lock(lock_margin);
+        rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19);
+      }
+    } else {
+      lock_position() fusion_lock_cavity(lock_margin, lock_turn, lock_clockwise, ext=lock_key_depth+5);
     }
   } else {
-    lock_position() fusion_lock_cavity(lock_margin, lock_turn, lock_clockwise, ext=lock_key_depth+5);
+    hull() {
+      if (lock_type == 0) {
+        dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical - z_slop) dy(19-mount_length/2) {
+          stealth_lock(lock_margin);
+          rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19);
+        }
+      } else {
+        dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical - z_slop) dy(mount_length/2-lock_key_depth) rz(90) fusion_lock_cavity(lock_margin, lock_turn, lock_clockwise, ext=lock_key_depth+5);
+      }
+      if (lock_type == 0) {
+        dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical + z_slop) dy(19-mount_length/2) {
+          stealth_lock(lock_margin);
+          rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19);
+        }
+      } else {
+        dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical + z_slop) dy(mount_length/2-lock_key_depth) rz(90) fusion_lock_cavity(lock_margin, lock_turn, lock_clockwise, ext=lock_key_depth+5);
+      }
+    }
   }
 }
 
 module lock_dovetail_inner() {
-  inner_dovetail_length = mount_length/3 - part_margin;
+  inner_dovetail_length = mount_length/3 - 2*lock_dovetail_margin;
   difference() {
     lock_case_shape(inner_dovetail_length);
     // Ensure the lock body does not enter the cage itself
     dz(-r3) skewxz(tan(tilt)) cylinder(r=R1+lock_offset_x+r3, h=100, center=true);
-    // Cut a cavity for the lock module
-    lock_cavity();
+    // Cut an elongated cavity along the sliding axis for print tolerance
+    lock_cavity(z_slop=lock_vertical_play/2);
   }
 }
 
@@ -921,7 +973,7 @@ module lock_tangent_bridge_3d(w) {
 
 module lock_dovetail_outer() {
   bridge_w = d_shape ? (20.0 - 2*part_margin) : mount_length;
-  slot_w = mount_length/3 + 2*part_margin;
+  slot_w = mount_length/3 + 2*lock_dovetail_margin;
   union() {
     // 1. Outer lock dovetail wings
     intersection () {
