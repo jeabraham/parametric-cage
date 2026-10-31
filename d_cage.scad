@@ -485,7 +485,17 @@ module cage() {
       union() {
         cage_bar_segments(); // The bars
         glans_cap(); // The cap
-        profile_torus(R1+r1, 2*r3, 2*r3, base_ring_roundness*r2/r3); // Cage base ring, same edge radius as the base ring
+        if (d_shape) {
+          difference() {
+            skewxz(tan(tilt))
+              linear_extrude(height=2*r3, center=true)
+                offset(r=r3)
+                  d_section_2d(R1, vibe_extra_height, vibe_top_width, vibe_corner_radius);
+            lock_slide_clearance();
+          }
+        } else {
+          profile_torus(R1+r1, 2*r3, 2*r3, base_ring_roundness*r2/r3); // Cage base ring, same edge radius as the base ring
+        }
         cage_lock(); // The part where the lock goes
         if (d_shape) {
           difference() {
@@ -581,12 +591,14 @@ module vibe_watch_pocket() {
   
   skewxz(tan(tilt)) {
     // 1. Watch body pocket: from z_watch_base to z_watch_end + pm
+    // Extend slightly forward (+X) through into the cage cavity so the watch communicates directly with the cavity
+    extra_through = 2.0;
     cavity_t = vibe_watch_thickness + pm;
     cavity_w = vibe_top_width;
     cavity_l = vibe_watch_length + pm;
     
-    translate([-(R1 + vibe_watch_thickness/2), 0, z_watch_base + cavity_l/2])
-      rounded_cube([cavity_t, cavity_w, cavity_l], 1.5, center=true);
+    translate([-(R1 + (cavity_t - extra_through)/2), 0, z_watch_base + cavity_l/2])
+      rounded_cube([cavity_t + extra_through, cavity_w, cavity_l], 1.5, center=true);
       
     // 2. Glans lug cavity: from z_watch_end to z_watch_end + lug_len_clear
     lug_y = (20.0 + 3.5) / 2;
@@ -608,7 +620,13 @@ module vibe_watch_pocket() {
     for (side = [-1, 1]) {
       translate([lug_x, side * lug_y, z_watch_base - lug_len_clear/2])
         rounded_cube([lug_h, lug_w, lug_len_clear + 0.5], 1.0, center=true);
+      translate([lug_x, side * lug_y, z_watch_base])
+        cube([lug_h, lug_w, 10.01], center=true);
     }
+    
+    // 4. Sliding entry chute through bottom face (body side) so watch slides in freely
+    translate([-(R1 + (cavity_t - extra_through)/2), 0, z_watch_base])
+      cube([cavity_t + extra_through, cavity_w, 10.01], center=true);
   }
 }
 
@@ -726,7 +744,7 @@ module cage_volume(r, open_bottom=false) {
   }
   // Dome
   translate(R) ry(Phi+tilt) {
-    if (d_shape) {
+    if (d_shape && (solid_wall || flat_top)) {
       hull() {
         cage_section(r);
         translate([0, 0, r]) sphere(r/2, $fn=32);
@@ -764,7 +782,7 @@ module d_section_2d(r, extra_h, top_w, corner_r) {
 
 // A thin slice of the cage cross-section, in the XY plane
 module cage_section(r) {
-  if (d_shape) {
+  if (d_shape && (solid_wall || flat_top)) {
     extra_r = r - R1;
     top_w = vibe_top_width + 2*extra_r;
     extra_h = vibe_extra_height;
@@ -852,8 +870,8 @@ module glans_cap() {
 }
 
 module cage_lock() {
-  // Create the solid arc that interfaces with the mating parts (a flat cap or a solid wall does this job itself)
-  if (!flat_top && !solid_wall) mount_arc();
+  // Create the solid arc that interfaces with the mating parts (a flat cap, solid wall, or d_shape does this job itself)
+  if (!flat_top && !solid_wall && !d_shape) mount_arc();
   // Create the flat plane on which the mating parts slide
   mount_flat();
   // Create the cage's piece of the lock
@@ -1039,7 +1057,7 @@ module mount_arc(arcLength=60) {
 }
 
 module mount_flat() {
-  closed = flat_top || solid_wall;
+  closed = flat_top || solid_wall || d_shape;
   // On a closed shape the slab reaches in past the wall at its ends, so its sides run straight into the wall;
   // cage() then trims it flush with the inner surface
   inner = closed ? sqrt(max(sq(R1) - sq(mount_length/2), 0)) : R1+lock_offset_x+r3-mount_width/2;
