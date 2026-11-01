@@ -160,6 +160,15 @@ charger_slot_side = -1; // [1: Right (+Y), -1: Left (-Y)]
 // Target gap between topmost right bar and watch case (mm)
 top_bar_gap = 9.6; // [0: Default 8-bar spacing, 5:0.1:15]
 
+// Bend the top bar back up to normal position after clearing the charging case
+top_bar_bend = 1; // [0: No, 1: Yes]
+
+// Shaft distance where the top bar starts bending back up to normal position (mm)
+top_bar_bend_z = 22.0; // [10:1:60]
+
+// Transition length along the shaft for the bend (mm)
+top_bar_bend_len = 8.0; // [3:1:20]
+
 // Show charger preview in slot (preview only)
 show_charger = 1; // [0: No, 1: Yes]
 
@@ -654,54 +663,67 @@ module vibe_screen_window() {
 // Charger access slot on the side of the watch case to access the bottom of the watch
 module vibe_charger_slot() {
   t = solid_wall_thickness;
-  pm = part_margin;
-  cavity_w = vibe_top_width;
-  box_w = cavity_w + 2*t;
+  side = charger_slot_side; // -1 for Right (-Y), 1 for Left (+Y)
   
-  side = charger_slot_side; // 1 = Right (+Y), -1 = Left (-Y)
-  
-  // Z span: starting 3mm from body side with 8mm length (Z = 3 to 11mm)
+  // Z span: starting 3mm from body side with charger_slot_width along watch length
   z_start = charger_slot_start;
   z_len = charger_slot_width;
   z_center = z_start + z_len / 2;
   
-  // X span: from slightly inside the watch pocket floor down through the floor and into the gap
-  x_floor = -(R1 + t);
-  x_top = x_floor - 0.5; // 0.5mm into pocket for clean opening
-  x_bot = -(R1 - charger_slot_depth);
+  // X span: perpendicular to watch bottom, from pocket floor into gap
+  x_top = -0.5; // 0.5mm into pocket for clean opening
+  x_bot = t + charger_slot_depth;
   x_len = x_bot - x_top;
   x_center = (x_top + x_bot) / 2;
   
-  // Y span: from the outer wall (+ margin) reaching inward across the bottom of the watch
-  y_outer = box_w/2 + 5;
-  y_inner = cavity_w/2 - charger_slot_reach;
-  y_len = y_outer - y_inner;
-  y_center = side * (y_inner + y_len / 2);
+  // Y span: from outer wall reaching inward across bottom of watch
+  y_outer = side * (vibe_top_width/2 + t + 6);
+  y_inner = side * (vibe_top_width/2 - charger_slot_reach);
+  y_len = abs(y_outer - y_inner);
+  y_center = (y_outer + y_inner) / 2;
   
-  skewxz(tan(tilt)) {
-    translate([x_center, y_center, z_center])
-      rounded_cube([x_len, y_len, z_len], 1.0, center=true);
+  difference() {
+    // 1. Right-angled slot parallel and perpendicular to watch bottom
+    translate([-(R1 + t), 0, 0]) ry(tilt) {
+      translate([x_center, y_center, z_center])
+        rounded_cube([x_len, y_len, z_len], 1.0, center=true);
+    }
+    // 2. Protect the cage base ring (at the body side) from being cut if tilt is large
+    profile_torus(R1+r1+0.4, 2*r3+0.8, 2*r3+0.8, base_ring_roundness*r2/r3);
+    // Also protect the space below the cage base ring
+    dz(-50 - r3) cylinder(r=R1+r1+15, h=50);
   }
 }
 
 // Charger mockup seated in the access slot contacting the bottom of the watch (preview only)
 module vibe_charger_mockup() {
   t = solid_wall_thickness;
-  side = charger_slot_side;
-  z_center = charger_slot_start + charger_slot_length / 2;
-  x_floor = -(R1 + t);
+  side = charger_slot_side; // -1 for Right (-Y), 1 for Left (+Y)
   
-  skewxz(tan(tilt)) {
-    // Charger head (7.5mm wide along Z)
-    translate([x_floor + 2.5, side * (vibe_top_width/2 - charger_slot_reach/2 + 2), z_center])
+  // Center of 7.5mm charger along watch length
+  z_center = charger_slot_start + 7.5 / 2;
+  charger_thick = 5.0; // Thickness of charger head
+  charger_reach = charger_slot_reach + 2;
+  
+  y_outer = side * (vibe_top_width/2 + 2);
+  y_inner = side * (vibe_top_width/2 - charger_reach);
+  y_center = (y_outer + y_inner) / 2;
+  y_len = abs(y_outer - y_inner);
+  
+  // Contacts bottom of watch at X' = 0, extends downward into gap
+  x_center = charger_thick / 2;
+  
+  translate([-(R1 + t), 0, 0]) ry(tilt) {
+    // Charger head (7.5mm wide along watch length Z')
+    translate([x_center, y_center, z_center])
       color("dodgerblue", 0.85)
-        rounded_cube([5.0, charger_slot_reach + 4, 7.5], 1.0, center=true);
+        rounded_cube([charger_thick, y_len, 7.5], 1.0, center=true);
         
     // Cable lead extending out to the side
-    translate([x_floor + 2.5, side * (vibe_top_width/2 + 10), z_center])
+    translate([x_center, side * (vibe_top_width/2 + 10), z_center])
       color("white", 0.9)
         rotate([0, 90, 0])
-          cylinder(d=3.0, h=15, center=true);
+          cylinder(d=3.0, h=16, center=true);
   }
 }
 
@@ -882,28 +904,74 @@ function bar_theta(i) =
         : (abs(base_th - 112.5) < step/2 ? calc_top_right_bar_theta(top_bar_gap) : base_th))
     : base_th;
 
+// Helper to compute point along shaft at fraction u (0..1) and angle th
+function bar_straight_pt(u, th) =
+  (1 - u) * rz([R1+r1, 0, 0], th) + u * (Q + ry(rz([R1+r1, 0, 0], th), tilt));
+
 module cage_bar_segments() {
   for (i = [0 : cage_bar_count - 1]) {
-    theta = bar_theta(i);
-    // Straight segment begins at a point along the base ring, and ends at a point a distance R1 from point Q
-    straightSegStart = rz([R1+r1, 0, 0], theta);
-    straightSegEnd = Q + ry(straightSegStart, tilt);
-    curveSegEnd = ry(straightSegEnd-P, Phi)+P;
-    
-    // make a cylinder between straightSegStart and straightSegEnd
-    segAngle = 90-atan2(straightSegEnd.z - straightSegStart.z, straightSegEnd.x - straightSegStart.x);
-    segLength = norm(straightSegEnd - straightSegStart);
-    translate(straightSegStart) ry(segAngle) cylinder(r=r1, h=segLength);
-    
-    // Make a torus between straightSegEnd and curveSegEnd, if necessary
-    if (Phi > 0.05) {
-      // First, find the angle between the ends of the curve
-      vec1 = [straightSegEnd.x, 0, straightSegEnd.z]-P;
-      vec2 = [curveSegEnd.x, 0, curveSegEnd.z]-P;
-      cos_val = dot(vec1, vec2)/(norm(vec1)*norm(vec2));
-      curveAngle = acos(max(-1, min(1, cos_val)));
-      curveRad = norm(vec1);
-      translate(straightSegEnd) ry(-180+tilt) dx(-curveRad) rx(90) torus(curveRad, r1, -curveAngle, rounded=true);
+    base_th = step/2 + i*step;
+    is_charger_bar = d_shape && top_bar_gap > 0 &&
+      (charger_slot_side == -1 ? (abs(base_th - 247.5) < step/2) : (abs(base_th - 112.5) < step/2));
+
+    if (is_charger_bar && top_bar_bend && dQ > 5) {
+      // Bent bar: lowered to theta_gap near body for 9.6mm clearance, then bends back up to normal position
+      th_normal = base_th;
+      th_gap = charger_slot_side == -1
+        ? (360 - calc_top_right_bar_theta(top_bar_gap))
+        : calc_top_right_bar_theta(top_bar_gap);
+
+      u1 = min(max(top_bar_bend_z / dQ, 0.1), 0.85);
+      u2 = min(max((top_bar_bend_z + top_bar_bend_len) / dQ, u1 + 0.05), 0.98);
+
+      P0 = bar_straight_pt(0, th_gap);
+      P1 = bar_straight_pt(u1, th_gap);
+      P2 = bar_straight_pt(u2, th_normal);
+      P3 = bar_straight_pt(1, th_normal);
+
+      // 3 segments forming the bent bar with spherical ball joints
+      hull() {
+        translate(P0) sphere(r=r1, $fn=16);
+        translate(P1) sphere(r=r1, $fn=16);
+      }
+      hull() {
+        translate(P1) sphere(r=r1, $fn=16);
+        translate(P2) sphere(r=r1, $fn=16);
+      }
+      hull() {
+        translate(P2) sphere(r=r1, $fn=16);
+        translate(P3) sphere(r=r1, $fn=16);
+      }
+
+      // Curved torus segment to glans cap at the normal 8-bar position
+      straightSegEnd = P3;
+      curveSegEnd = ry(straightSegEnd - P, Phi) + P;
+      if (Phi > 0.05) {
+        vec1 = [straightSegEnd.x, 0, straightSegEnd.z] - P;
+        vec2 = [curveSegEnd.x, 0, curveSegEnd.z] - P;
+        cos_val = dot(vec1, vec2) / (norm(vec1) * norm(vec2));
+        curveAngle = acos(max(-1, min(1, cos_val)));
+        curveRad = norm(vec1);
+        translate(straightSegEnd) ry(-180 + tilt) dx(-curveRad) rx(90) torus(curveRad, r1, -curveAngle, rounded=true);
+      }
+    } else {
+      theta = bar_theta(i);
+      straightSegStart = rz([R1+r1, 0, 0], theta);
+      straightSegEnd = Q + ry(straightSegStart, tilt);
+      curveSegEnd = ry(straightSegEnd - P, Phi) + P;
+
+      segAngle = 90 - atan2(straightSegEnd.z - straightSegStart.z, straightSegEnd.x - straightSegStart.x);
+      segLength = norm(straightSegEnd - straightSegStart);
+      translate(straightSegStart) ry(segAngle) cylinder(r=r1, h=segLength);
+
+      if (Phi > 0.05) {
+        vec1 = [straightSegEnd.x, 0, straightSegEnd.z] - P;
+        vec2 = [curveSegEnd.x, 0, curveSegEnd.z] - P;
+        cos_val = dot(vec1, vec2) / (norm(vec1) * norm(vec2));
+        curveAngle = acos(max(-1, min(1, cos_val)));
+        curveRad = norm(vec1);
+        translate(straightSegEnd) ry(-180 + tilt) dx(-curveRad) rx(90) torus(curveRad, r1, -curveAngle, rounded=true);
+      }
     }
   }
 }
