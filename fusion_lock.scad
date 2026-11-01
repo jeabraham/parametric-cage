@@ -36,21 +36,58 @@ module cam_prism(slop=0) {
 // Cavity for the lock. The lock is inserted from the key side (+X), so the
 // profile runs out past the key face by `ext`. At the far end, the cam turns
 // into a pocket; once turned, the cam can't be pulled back out.
-module fusion_lock_cavity(slop=0, turn=45, clockwise=true, ext=5, step=5) {
+module fusion_lock_cavity(slop=0, turn=45, clockwise=true, ext=5, step=5, z_slop=0) {
   dir = clockwise ? -1 : 1;
   union() {
     // Shell cylinder, plus its run-out to the surface
-    dx(-shell_len-slop) ry(90) cylinder(r=shell_r+slop, h=shell_len+slop+ext);
+    if (z_slop == 0) {
+      dx(-shell_len-slop) ry(90) cylinder(r=shell_r+slop, h=shell_len+slop+ext);
+    } else {
+      hull() {
+        dz(-z_slop) dx(-shell_len-slop) ry(90) cylinder(r=shell_r+slop, h=shell_len+slop+ext);
+        dz(z_slop)  dx(-shell_len-slop) ry(90) cylinder(r=shell_r+slop, h=shell_len+slop+ext);
+      }
+    }
     // Shell fin slot
-    translate([-shell_len-slop, -shell_fin_w/2-slop, -shell_fin_d-slop]) cube([shell_len+slop+ext, shell_fin_w+2*slop, shell_fin_d+slop]);
+    if (z_slop == 0) {
+      translate([-shell_len-slop, -shell_fin_w/2-slop, -shell_fin_d-slop]) cube([shell_len+slop+ext, shell_fin_w+2*slop, shell_fin_d+slop]);
+    } else {
+      hull() {
+        dz(-z_slop) translate([-shell_len-slop, -shell_fin_w/2-slop, -shell_fin_d-slop]) cube([shell_len+slop+ext, shell_fin_w+2*slop, shell_fin_d+slop]);
+        dz(z_slop)  translate([-shell_len-slop, -shell_fin_w/2-slop, -shell_fin_d-slop]) cube([shell_len+slop+ext, shell_fin_w+2*slop, shell_fin_d+slop]);
+      }
+    }
     // Core cylinder beyond the shell
-    dx(-core_len-slop) ry(90) cylinder(r=core_r+slop, h=core_len-shell_len+2*slop);
+    if (z_slop == 0) {
+      dx(-core_len-slop) ry(90) cylinder(r=core_r+slop, h=core_len-shell_len+2*slop);
+    } else {
+      hull() {
+        dz(-z_slop) dx(-core_len-slop) ry(90) cylinder(r=core_r+slop, h=core_len-shell_len+2*slop);
+        dz(z_slop)  dx(-core_len-slop) ry(90) cylinder(r=core_r+slop, h=core_len-shell_len+2*slop);
+      }
+    }
     // Channel the cam and the shell's wedge travel through (unturned position)
-    translate([-core_len-slop, -cam_w/2-slop, -cam_d-slop]) cube([core_len-shell_len+2*slop, cam_w+2*slop, cam_d+slop]);
+    if (z_slop == 0) {
+      translate([-core_len-slop, -cam_w/2-slop, -cam_d-slop]) cube([core_len-shell_len+2*slop, cam_w+2*slop, cam_d+slop]);
+    } else {
+      hull() {
+        dz(-z_slop) translate([-core_len-slop, -cam_w/2-slop, -cam_d-slop]) cube([core_len-shell_len+2*slop, cam_w+2*slop, cam_d+slop]);
+        dz(z_slop)  translate([-core_len-slop, -cam_w/2-slop, -cam_d-slop]) cube([core_len-shell_len+2*slop, cam_w+2*slop, cam_d+slop]);
+      }
+    }
     // Pocket swept by the cam as it turns
-    for (a = [0:step:turn-step]) hull() {
-      rx(dir*a) cam_prism(slop);
-      rx(dir*min(a+step, turn)) cam_prism(slop);
+    if (z_slop == 0) {
+      for (a = [0:step:turn-step]) hull() {
+        rx(dir*a) cam_prism(slop);
+        rx(dir*min(a+step, turn)) cam_prism(slop);
+      }
+    } else {
+      for (a = [0:step:turn-step]) hull() {
+        dz(-z_slop) rx(dir*a) cam_prism(slop);
+        dz(-z_slop) rx(dir*min(a+step, turn)) cam_prism(slop);
+        dz(z_slop)  rx(dir*a) cam_prism(slop);
+        dz(z_slop)  rx(dir*min(a+step, turn)) cam_prism(slop);
+      }
     }
   }
 }

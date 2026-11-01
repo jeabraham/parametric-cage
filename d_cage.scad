@@ -58,22 +58,22 @@ penis_length = 52; // [30:200]
 // Thickness of the rings of the cage
 cage_bar_thickness = 4; // [4:8]
 
-// Number of vertical bars on the cage
+// [Bars only] Number of vertical bars on the cage
 cage_bar_count = 8;
 
-// Replace the bars with a solid wall along the same shape
+// Main style toggle: 0 = Barred cage, 1 = Solid wall cage
 solid_wall = 1; // [0: Bars, 1: Solid wall]
 
-// Thickness of the solid wall, measured outward from the cage diameter
+// [Solid wall & D-shape] Wall and floor thickness, measured outward from the cage diameter (also sets watch case wall thickness)
 solid_wall_thickness = 2; // [1.2:0.1:8]
 
 // Width of the slit at the front opening
 slit_width = 9; // [0:40]
 
-// Solid wall: where the slit starts, in degrees over the dome from its base on the lock side (90 = the tip)
+// [Solid wall only] Where the slit starts, in degrees over the dome from its base on the lock side (90 = the tip)
 slit_start = 70; // [0:1:180]
 
-// Solid wall: where the slit ends, in degrees over the dome from its base on the lock side (180 = base on the far side)
+// [Solid wall only] Where the slit ends, in degrees over the dome from its base on the lock side (180 = base on the far side)
 slit_end = 130; // [0:1:180]
 
 // X-axis coordinate of the bend point (the center of the arc the cage bends around)
@@ -87,7 +87,7 @@ bend_point_z = 5; // [0:0.1:200]
 // Use D-shaped cage cross-section for vibe watch
 d_shape = 1; // [0: Circular, 1: D-Shape]
 
-// Extra height added to the dorsal top of the cage (mm)
+// [Solid wall only] Extra dorsal height added to the extruded solid tube cross-section (has no effect on barred cage, where watch case depth is driven directly by watch thickness)
 vibe_extra_height = 10.0; // [0:0.5:20]
 
 // Flat top width for the vibe watch (mm)
@@ -122,19 +122,19 @@ show_cutaway = 0; // [0: None, 1: XZ Cutaway]
 
 /* [Ventilation Slots] */
 
-// Optional ventilation slots on the left and right sides of the solid cage
+// [Solid wall only] Optional ventilation slots on the left and right walls of the solid cage (bars already provide open ventilation)
 vent_slots = 1; // [0: None, 1: Enabled]
 
-// Number of ventilation slots per side
+// [Solid wall only] Number of ventilation slots per side
 vent_slot_count = 2; // [1:4]
 
-// Height of each ventilation slot (mm)
+// [Solid wall only] Height of each ventilation slot (mm)
 vent_slot_height = 5.0; // [1.5:0.5:6]
 
-// Starting position of ventilation slots along the shaft (mm)
+// [Solid wall only] Starting position of ventilation slots along the shaft (mm)
 vent_slot_start = 5.5; // [4:0.5:30]
 
-// Ending position of ventilation slots along the shaft (mm)
+// [Solid wall only] Ending position of ventilation slots along the shaft (mm)
 vent_slot_end = 32.5; // [10:0.5:60]
 
 /* [Charger Access Slot] */
@@ -157,16 +157,16 @@ charger_slot_reach = 14.0; // [5:0.5:36]
 // Side of charger access: -1 for Right (-Y), 1 for Left (+Y)
 charger_slot_side = -1; // [1: Right (+Y), -1: Left (-Y)]
 
-// Target gap between topmost right bar and watch case (mm)
+// [Bars only] Target gap between topmost bar and watch case (mm, default 9.6mm)
 top_bar_gap = 9.6; // [0: Default 8-bar spacing, 5:0.1:15]
 
-// Bend the top bar back up to normal position after clearing the charging case
+// [Bars only] Bend the topmost bar back up to normal 8-bar position after clearing the charging case
 top_bar_bend = 1; // [0: No, 1: Yes]
 
-// Shaft distance where the top bar starts bending back up to normal position (mm)
+// [Bars only] Shaft distance where the top bar starts bending back up to normal position (mm)
 top_bar_bend_z = 22.0; // [10:1:60]
 
-// Transition length along the shaft for the bend (mm)
+// [Bars only] Transition length along the shaft for the bend (mm)
 top_bar_bend_len = 8.0; // [3:1:20]
 
 // Show charger preview in slot (preview only)
@@ -174,28 +174,28 @@ show_charger = 1; // [0: No, 1: Yes]
 
 /* [Flat top] */
 
-// Height of the wall of the flat cap, from the bottom of the cage ring to the top of the plate
+// [Flat top only] Height of the wall of the flat cap, from the bottom of the cage ring to the top of the plate
 flat_wall_height = 9.4; // [4.8:0.1:40]
 
-// Thickness of the top plate
+// [Flat top only] Thickness of the top plate
 flat_plate_thickness = 1; // [0.6:0.1:4]
 
-// Diameter of the center hole in the top plate
+// [Flat top only] Diameter of the center hole in the top plate
 flat_center_hole = 6; // [0:0.5:15]
 
-// Number of holes around the center hole
+// [Flat top only] Number of holes around the center hole
 flat_hole_count = 6; // [0:12]
 
-// Diameter of the holes around the center hole
+// [Flat top only] Diameter of the holes around the center hole
 flat_hole_diameter = 3; // [1:0.5:8]
 
-// Radius of the circle the holes around the center sit on
+// [Flat top only] Radius of the circle the holes around the center sit on
 flat_hole_radius = 12; // [3:0.5:16]
 
-// Close the holes with a thin layer on the underside of the plate, so the slicer bridges the plate in one piece; poke it through after printing
+// [Flat top only] Close the holes with a thin layer on the underside of the plate, so the slicer bridges the plate in one piece; poke it through after printing
 flat_bridge_layer = 1; // [0: No, 1: Yes]
 
-// Thickness of that layer (one or two print layers)
+// [Flat top only] Thickness of that layer (one or two print layers)
 flat_bridge_layer_thickness = 0.2; // [0.1:0.05:0.6]
 
 /* [Base ring] */
@@ -1025,34 +1025,20 @@ module lock_position() {
 
 // Cut a cavity for the lock module (with optional vertical elongation slop along sliding axis)
 module lock_cavity(z_slop=0) {
-  if (z_slop == 0) {
-    if (lock_type == 0) {
-      dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical) dy(19-mount_length/2) {
-        stealth_lock(lock_margin);
+  if (lock_type == 0) {
+    dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical) dy(19-mount_length/2) {
+      stealth_lock(lock_margin, z_slop=z_slop);
+      if (z_slop == 0) {
         rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19);
+      } else {
+        hull() {
+          dz(-z_slop) rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19);
+          dz(z_slop)  rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19);
+        }
       }
-    } else {
-      lock_position() fusion_lock_cavity(lock_margin, lock_turn, lock_clockwise, ext=lock_key_depth+5);
     }
   } else {
-    hull() {
-      if (lock_type == 0) {
-        dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical - z_slop) dy(19-mount_length/2) {
-          stealth_lock(lock_margin);
-          rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19);
-        }
-      } else {
-        dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical - z_slop) dy(mount_length/2-lock_key_depth) rz(90) fusion_lock_cavity(lock_margin, lock_turn, lock_clockwise, ext=lock_key_depth+5);
-      }
-      if (lock_type == 0) {
-        dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical + z_slop) dy(19-mount_length/2) {
-          stealth_lock(lock_margin);
-          rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19);
-        }
-      } else {
-        dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical + z_slop) dy(mount_length/2-lock_key_depth) rz(90) fusion_lock_cavity(lock_margin, lock_turn, lock_clockwise, ext=lock_key_depth+5);
-      }
-    }
+    lock_position() fusion_lock_cavity(lock_margin, lock_turn, lock_clockwise, ext=lock_key_depth+5, z_slop=z_slop);
   }
 }
 
