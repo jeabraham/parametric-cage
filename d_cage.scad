@@ -137,6 +137,32 @@ vent_slot_start = 5.5; // [4:0.5:30]
 // Ending position of ventilation slots along the shaft (mm)
 vent_slot_end = 32.5; // [10:0.5:60]
 
+/* [Charger Access Slot] */
+
+// Enable charger access slot on the right side of the watch case
+charger_slot = 1; // [0: None, 1: Enabled]
+
+// Starting position of charger slot along watch from body side (mm)
+charger_slot_start = 3.0; // [0:0.5:20]
+
+// Length/width of charger slot along watch length (mm, 7.5mm charger -> 8mm)
+charger_slot_width = 8.0; // [4:0.5:20]
+
+// Depth of slot extending into the bottom of the watch case (mm)
+charger_slot_depth = 4.0; // [2:0.5:10]
+
+// Reach across the bottom of the watch from the outer wall (mm)
+charger_slot_reach = 14.0; // [5:0.5:36]
+
+// Side of charger access: -1 for Right (-Y), 1 for Left (+Y)
+charger_slot_side = -1; // [1: Right (+Y), -1: Left (-Y)]
+
+// Target gap between topmost right bar and watch case (mm)
+top_bar_gap = 9.6; // [0: Default 8-bar spacing, 5:0.1:15]
+
+// Show charger preview in slot (preview only)
+show_charger = 1; // [0: No, 1: Yes]
+
 /* [Flat top] */
 
 // Height of the wall of the flat cap, from the bottom of the cage ring to the top of the plate
@@ -337,6 +363,7 @@ module make() {
   make_base();
   if (lock_type == 1 && show_lock) %lock_position() fusion_lock_body(show_lock == 2 ? lock_turn : 0, lock_clockwise);
   if (d_shape && show_vibe_watch) %vibe_watch_in_cage();
+  if (d_shape && charger_slot && show_charger) %vibe_charger_mockup();
   if (do_bolt) {
     if (separate_parts_effective) {
       translate([cage_diameter + 15, -15, 0]) lock_bolt();
@@ -475,6 +502,7 @@ module cage() {
       if (d_shape) {
         vibe_watch_pocket();
         if (vibe_screen_opening) vibe_screen_window();
+        if (charger_slot) vibe_charger_slot();
       }
       if (solid_wall && vent_slots) cage_vent_slots();
     }
@@ -496,6 +524,7 @@ module cage() {
         cage_volume(R1, open_bottom=true);
         vibe_watch_pocket();
         if (vibe_screen_opening) vibe_screen_window();
+        if (charger_slot) vibe_charger_slot();
       }
     }
   }
@@ -619,6 +648,60 @@ module vibe_screen_window() {
     skewxz(tan(tilt))
       translate([x_pocket_center - cavity_t/2 - t/2, 0, win_z_start + win_len/2])
         rounded_cube([t + 4, win_w, win_len], 2.0, center=true);
+  }
+}
+
+// Charger access slot on the side of the watch case to access the bottom of the watch
+module vibe_charger_slot() {
+  t = solid_wall_thickness;
+  pm = part_margin;
+  cavity_w = vibe_top_width;
+  box_w = cavity_w + 2*t;
+  
+  side = charger_slot_side; // 1 = Right (+Y), -1 = Left (-Y)
+  
+  // Z span: starting 3mm from body side with 8mm length (Z = 3 to 11mm)
+  z_start = charger_slot_start;
+  z_len = charger_slot_width;
+  z_center = z_start + z_len / 2;
+  
+  // X span: from slightly inside the watch pocket floor down through the floor and into the gap
+  x_floor = -(R1 + t);
+  x_top = x_floor - 0.5; // 0.5mm into pocket for clean opening
+  x_bot = -(R1 - charger_slot_depth);
+  x_len = x_bot - x_top;
+  x_center = (x_top + x_bot) / 2;
+  
+  // Y span: from the outer wall (+ margin) reaching inward across the bottom of the watch
+  y_outer = box_w/2 + 5;
+  y_inner = cavity_w/2 - charger_slot_reach;
+  y_len = y_outer - y_inner;
+  y_center = side * (y_inner + y_len / 2);
+  
+  skewxz(tan(tilt)) {
+    translate([x_center, y_center, z_center])
+      rounded_cube([x_len, y_len, z_len], 1.0, center=true);
+  }
+}
+
+// Charger mockup seated in the access slot contacting the bottom of the watch (preview only)
+module vibe_charger_mockup() {
+  t = solid_wall_thickness;
+  side = charger_slot_side;
+  z_center = charger_slot_start + charger_slot_length / 2;
+  x_floor = -(R1 + t);
+  
+  skewxz(tan(tilt)) {
+    // Charger head (7.5mm wide along Z)
+    translate([x_floor + 2.5, side * (vibe_top_width/2 - charger_slot_reach/2 + 2), z_center])
+      color("dodgerblue", 0.85)
+        rounded_cube([5.0, charger_slot_reach + 4, 7.5], 1.0, center=true);
+        
+    // Cable lead extending out to the side
+    translate([x_floor + 2.5, side * (vibe_top_width/2 + 10), z_center])
+      color("white", 0.9)
+        rotate([0, 90, 0])
+          cylinder(d=3.0, h=15, center=true);
   }
 }
 
@@ -786,8 +869,22 @@ module flat_cap() {
   }
 }
 
+// Angle for the topmost bar to achieve top_bar_gap (default 9.6mm) clearance to the watch case
+function calc_top_right_bar_theta(target_gap) =
+  let(cos_th = (target_gap - (R1 - r1)) / (R1 + r1))
+  (cos_th >= -1 && cos_th <= 1) ? acos(cos_th) : 112.5;
+
+function bar_theta(i) =
+  let(base_th = step/2 + i*step)
+  (d_shape && top_bar_gap > 0)
+    ? (charger_slot_side == -1
+        ? (abs(base_th - 247.5) < step/2 ? (360 - calc_top_right_bar_theta(top_bar_gap)) : base_th)
+        : (abs(base_th - 112.5) < step/2 ? calc_top_right_bar_theta(top_bar_gap) : base_th))
+    : base_th;
+
 module cage_bar_segments() {
-  for (theta = [step/2:step:360-step/2]) {
+  for (i = [0 : cage_bar_count - 1]) {
+    theta = bar_theta(i);
     // Straight segment begins at a point along the base ring, and ends at a point a distance R1 from point Q
     straightSegStart = rz([R1+r1, 0, 0], theta);
     straightSegEnd = Q + ry(straightSegStart, tilt);
