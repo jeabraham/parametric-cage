@@ -6,3 +6,4 @@ output/
 *.3mf
 *.generated.scad
 .DS_Store
+snippets
