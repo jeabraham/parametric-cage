@@ -214,13 +214,34 @@ wave_angle = 8; // [0:45]
 // Lock mechanism type: 0 = Stealth lock (Holy Trainer style), 1 = Fusion 360 lock (small cylinder cam lock)
 lock_type = 0; // [0: Stealth lock, 1: Fusion 360 lock]
 
-// Fusion 360 lock: How deep the key face of the lock sits below the surface of the case
+// Stealth lock diameter (mm)
+stealth_lock_diameter = 5.8; // [5.0:0.1:10.0]
+
+// Stealth lock total length (mm)
+stealth_lock_length = 18.8; // [15.0:0.1:30.0]
+
+// Stealth lock turning cam/pin length at the far end (mm)
+stealth_lock_cam_length = 4.0; // [2.0:0.1:10.0]
+
+// Stealth lock turning cam angle in degrees (e.g. 50 degrees to minimize material removed)
+stealth_lock_turn_angle = 50; // [20:5:180]
+
+// Stealth lock pin/cam height from cylinder center (mm)
+stealth_lock_pin_height = 8.1; // [4.0:0.1:12.0]
+
+// Stealth lock pin width (mm)
+stealth_lock_pin_width = 3.2; // [1.0:0.1:6.0]
+
+// Keep the far side of the lock cavity blind/closed (0 = Through-hole to see through, 1 = Blind hole)
+stealth_lock_blind = 0; // [0: Through-hole, 1: Blind hole]
+
+// How deep the key face of the lock sits below the surface of the case
 lock_key_depth = 1.5; // [0:0.1:4]
 
-// Fusion 360 lock: Direction the lock core turns, seen from the key side
+// Direction the lock core turns, seen from the key side
 lock_clockwise = 1; // [1: Clockwise, 0: Counterclockwise]
 
-// Fusion 360 lock: Show the lock in place (preview only)
+// Show the lock in place (preview only)
 show_lock = 0; // [0: No, 1: Unlocked, 2: Locked]
 
 // Render 3D-printable threaded bolt and nut for the lock (Stealth lock type)
@@ -1114,22 +1135,19 @@ module lock_position() {
 // Cut a cavity for the lock module (with optional vertical elongation slop along sliding axis)
 module lock_cavity(z_slop=0) {
   if (lock_type == 0) {
-    dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical) dy(19-mount_length/2) {
-      stealth_lock(lock_margin, z_slop=z_slop);
-      // Runout cylinders extending out to the side so the lock can slide in from the side freely
-      if (z_slop == 0) {
-        rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19+50);
-        rx(90) cylinder(r=3.5+lock_margin, h=19+50);
-      } else {
-        hull() {
-          dz(-z_slop) rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19+50);
-          dz(z_slop)  rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19+50);
-        }
-        hull() {
-          dz(-z_slop) rx(90) cylinder(r=3.5+lock_margin, h=19+50);
-          dz(z_slop)  rx(90) cylinder(r=3.5+lock_margin, h=19+50);
-        }
-      }
+    dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical) dy(mount_length/2 - lock_key_depth) {
+      stealth_lock(
+        dia = stealth_lock_diameter,
+        len = stealth_lock_length,
+        cam_len = stealth_lock_cam_length,
+        pin_h = stealth_lock_pin_height,
+        pin_w = stealth_lock_pin_width,
+        cam_angle = stealth_lock_turn_angle,
+        clockwise = lock_clockwise,
+        blind = (stealth_lock_blind == 1),
+        slop = lock_margin,
+        z_slop = z_slop
+      );
     }
   } else {
     lock_position() fusion_lock_cavity(lock_margin, lock_turn, lock_clockwise, ext=lock_key_depth+50, z_slop=z_slop);

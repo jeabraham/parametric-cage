@@ -1,42 +1,57 @@
 include <handyfunctions.scad>
 
-cylinder_radius = 3.5;
-// count from one edge unlocked to the other edge in locked position:
-locking_cam_turn_radius = 120;
+module stealth_lock(
+  dia = 5.8,
+  len = 18.8,
+  cam_len = 4.0,
+  pin_h = 8.1,
+  pin_w = 3.2,
+  cam_angle = 50,
+  clockwise = true,
+  blind = false,
+  slop = 0,
+  z_slop = 0
+) {
+  r = dia/2;
+  dir = clockwise ? -1 : 1;
+  h_cyl = blind ? len + 50 : len + 100;
+  y_start = blind ? -len : -len - 50;
 
-module stealth_lock(slop=0, z_slop=0) {
   union() {
-    // circle:
+    // 1. Single continuous through cylinder along Y:
+    // One uninterrupted primitive cylinder guarantees 100% clean through-visibility with zero coplanar face artifacts
     if (z_slop == 0) {
-      rx(90) cylinder(r=cylinder_radius+slop, h=19);
+      translate([0, y_start, 0])
+        rotate([-90, 0, 0])
+          cylinder(r=r+slop, h=h_cyl);
     } else {
       hull() {
-        dz(-z_slop) rx(90) cylinder(r=cylinder_radius+slop, h=19);
-        dz(z_slop)  rx(90) cylinder(r=cylinder_radius+slop, h=19);
+        dz(-z_slop) translate([0, y_start, 0]) rotate([-90, 0, 0]) cylinder(r=r+slop, h=h_cyl);
+        dz(z_slop)  translate([0, y_start, 0]) rotate([-90, 0, 0]) cylinder(r=r+slop, h=h_cyl);
       }
     }
-    // rectangle:
+    // 2. Insertion fin slot from entrance (+50) to end of lock (-len):
     if (z_slop == 0) {
-      dx(-1.6-slop) dy(-19) dz(-8.1-slop) cube([3.2+2*slop, 19, 8.1+slop]);
+      translate([-pin_w/2 - slop, -len, -pin_h - slop])
+        cube([pin_w + 2*slop, len + 50, pin_h + slop]);
     } else {
       hull() {
-        dz(-z_slop) dx(-1.6-slop) dy(-19) dz(-8.1-slop) cube([3.2+2*slop, 19, 8.1+slop]);
-        dz(z_slop)  dx(-1.6-slop) dy(-19) dz(-8.1-slop) cube([3.2+2*slop, 19, 8.1+slop]);
+        dz(-z_slop) translate([-pin_w/2 - slop, -len, -pin_h - slop]) cube([pin_w + 2*slop, len + 50, pin_h + slop]);
+        dz(z_slop)  translate([-pin_w/2 - slop, -len, -pin_h - slop]) cube([pin_w + 2*slop, len + 50, pin_h + slop]);
       }
     }
-    // what the thing moves through:
+    // 3. Turning pin pocket at the far end of the lock (last cam_len mm, swept by cam_angle):
     if (z_slop == 0) {
-      ry(90) rx(90) rotate_extrude(angle=-locking_cam_turn_radius) {
-        square([8.1+slop, 7+slop]);
-      }
+      translate([0, -(len - cam_len), 0])
+        ry(90) rx(90) rotate_extrude(angle=dir*cam_angle) {
+          square([pin_h + slop, cam_len + slop]);
+        }
     } else {
       hull() {
-        dz(-z_slop) ry(90) rx(90) rotate_extrude(angle=-locking_cam_turn_radius) {
-          square([8.1+slop, 7+slop]);
-        }
-        dz(z_slop)  ry(90) rx(90) rotate_extrude(angle=-locking_cam_turn_radius) {
-          square([8.1+slop, 7+slop]);
-        }
+        dz(-z_slop) translate([0, -(len - cam_len), 0])
+          ry(90) rx(90) rotate_extrude(angle=dir*cam_angle) square([pin_h + slop, cam_len + slop]);
+        dz(z_slop)  translate([0, -(len - cam_len), 0])
+          ry(90) rx(90) rotate_extrude(angle=dir*cam_angle) square([pin_h + slop, cam_len + slop]);
       }
     }
   }
