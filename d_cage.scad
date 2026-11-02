@@ -36,16 +36,13 @@ use <threads.scad>
 /* [General] */
 
 // Render cage and ring separately
-separate_parts = 1; // [0: Together, 1: Separate]
-
-// Cage shape: a full cage with bars, or a flat cap (a wall ring with a flat top plate)
-flat_top = 0; // [0: Cage, 1: Flat]
+separate_parts = 0; // [0: Together, 1: Separate]
 
 // Cage diameter
-cage_diameter = 27; // [26:40]
+cage_diameter = 28; // [26:40]
 
 // Tilt angle of the cage at the base ring
-tilt = 23; // [0:30]
+tilt = 25; // [0:30]
 
 // Gap between the bottom of the cage and the base ring
 gap = 13; // [10:20]
@@ -62,12 +59,12 @@ cage_bar_thickness = 4; // [4:8]
 cage_bar_count = 8;
 
 // Main style toggle: 0 = Barred cage, 1 = Solid wall cage
-solid_wall = 1; // [0: Bars, 1: Solid wall]
+solid_wall = 0; // [0: Bars, 1: Solid wall]
 
 // [Solid wall & D-shape] Wall and floor thickness, measured outward from the cage diameter (also sets watch case wall thickness)
 solid_wall_thickness = 2; // [1.2:0.1:8]
 
-// Width of the slit at the front opening
+// Clear space between front bars (bars version) or width of the front slit (solid version) (mm)
 slit_width = 9; // [0:40]
 
 // [Solid wall only] Where the slit starts, in degrees over the dome from its base on the lock side (90 = the tip)
@@ -82,40 +79,43 @@ bend_point_x = 35; // [0:0.1:200]
 // Z-axis coordinate of the bend point (the center of the arc the cage bends around)
 bend_point_z = 5; // [0:0.1:200]
 
-/* [D-Shape Cage / Vibe Chamber] */
+/* [D-Shape Cage / Watch Chamber] */
 
-// Use D-shaped cage cross-section for vibe watch
+// Use D-shaped cage cross-section for watch (vibrating or buzzing device)
 d_shape = 1; // [0: Circular, 1: D-Shape]
 
 // [Solid wall only] Extra dorsal height added to the extruded solid tube cross-section (has no effect on barred cage, where watch case depth is driven directly by watch thickness)
-vibe_extra_height = 10.0; // [0:0.5:20]
+watch_extra_height = 10.0; // [0:0.5:20]
 
-// Flat top width for the vibe watch (mm)
-vibe_top_width = 36.4; // 36 + 2*tolerance wide
+// Flat top width for the watch case (mm)
+watch_top_width = 36.4; // 36 + 2*tolerance wide
 
 // Corner rounding radius for D-shape top corners (mm)
-vibe_corner_radius = 4.0; // [1.0:0.5:8.0]
+watch_corner_radius = 4.0; // [1.0:0.5:8.0]
 
 // Watch body length (mm)
-vibe_watch_length = 42.6;
+watch_length = 42.6;
 
 // Watch thickness (mm)
-vibe_watch_thickness = 10.0;
+watch_thickness = 13.0;
 
-// Cut screen opening on flat top of cage
-vibe_screen_opening = 1; // [0: No, 1: Yes]
+// Cut screen opening on top of watch case
+watch_screen_opening = 1; // [0: No, 1: Yes]
 
 // Length of the touch screen window opening (mm)
-vibe_screen_length = 43.0; // [15:0.5:40]
+watch_screen_length = 43.0; // [15:0.5:40]
 
 // Width of the touch screen window opening (mm)
-vibe_screen_width = 36.0; // [15:0.5:36]
+watch_screen_width = 36.0; // [15:0.5:36]
 
 // Solid roof margin above lock block before screen window starts (mm)
-vibe_screen_margin_z = 5.0; // [2:0.5:15]
+watch_screen_margin_z = 5.0; // [2:0.5:15]
+
+// Open front lug pockets through the front of the case for water spray cleaning
+front_lug_ports = 1; // [0: Closed, 1: Open spray ports]
 
 // Show watch preview inside the D-shape chamber
-show_vibe_watch = 1; // [0: No, 1: Yes]
+show_watch = 1; // [0: No, 1: Yes]
 
 // Show cross-section cutaway (preview only)
 show_cutaway = 0; // [0: None, 1: XZ Cutaway]
@@ -145,14 +145,14 @@ charger_slot = 1; // [0: None, 1: Enabled]
 // Starting position of charger slot along watch from body side (mm)
 charger_slot_start = 3.0; // [0:0.5:20]
 
-// Length/width of charger slot along watch length (mm, 7.5mm charger -> 8mm)
-charger_slot_width = 8.0; // [4:0.5:20]
+// Length/width of charger slot along watch length (mm, 7.5mm charger -> 8-10mm)
+charger_slot_width = 10.0; // [4:0.5:20]
 
 // Depth of slot extending into the bottom of the watch case (mm)
-charger_slot_depth = 4.0; // [2:0.5:10]
+charger_slot_depth = 6.5; // [2:0.5:10]
 
 // Reach across the bottom of the watch from the outer wall (mm)
-charger_slot_reach = 14.0; // [5:0.5:36]
+charger_slot_reach = 30.5; // [5:0.5:36]
 
 // Side of charger access: -1 for Right (-Y), 1 for Left (+Y)
 charger_slot_side = -1; // [1: Right (+Y), -1: Left (-Y)]
@@ -164,39 +164,30 @@ top_bar_gap = 9.6; // [0: Default 8-bar spacing, 5:0.1:15]
 top_bar_bend = 1; // [0: No, 1: Yes]
 
 // [Bars only] Shaft distance where the top bar starts bending back up to normal position (mm)
-top_bar_bend_z = 22.0; // [10:1:60]
+top_bar_bend_z = 10.0; // [10:1:60]
 
 // [Bars only] Transition length along the shaft for the bend (mm)
-top_bar_bend_len = 8.0; // [3:1:20]
+top_bar_bend_len = 5.0; // [3:1:20]
 
 // Show charger preview in slot (preview only)
 show_charger = 1; // [0: No, 1: Yes]
 
-/* [Flat top] */
+/* [Rounded Casing] */
 
-// [Flat top only] Height of the wall of the flat cap, from the bottom of the cage ring to the top of the plate
-flat_wall_height = 9.4; // [4.8:0.1:40]
+// Wrap a smooth egg-shell casing around the watch cabinet to soften the profile under clothing
+rounded_casing = 1; // [0: Standard watch box, 1: Smooth egg-shell casing]
 
-// [Flat top only] Thickness of the top plate
-flat_plate_thickness = 1; // [0.6:0.1:4]
+// Top dorsal crown bump (mm, arches the top between corners)
+casing_top_bump = 3.0; // [0.5:0.5:8.0]
 
-// [Flat top only] Diameter of the center hole in the top plate
-flat_center_hole = 6; // [0:0.5:15]
+// Side flank bulge (mm, arches the sides below corners)
+casing_side_bump = 2.5; // [0.5:0.5:8.0]
 
-// [Flat top only] Number of holes around the center hole
-flat_hole_count = 6; // [0:12]
+// Front nose blend extension (mm, curves the front forward into an egg tip)
+casing_front_blend = 5.0; // [1.0:0.5:15.0]
 
-// [Flat top only] Diameter of the holes around the center hole
-flat_hole_diameter = 3; // [1:0.5:8]
-
-// [Flat top only] Radius of the circle the holes around the center sit on
-flat_hole_radius = 12; // [3:0.5:16]
-
-// [Flat top only] Close the holes with a thin layer on the underside of the plate, so the slicer bridges the plate in one piece; poke it through after printing
-flat_bridge_layer = 1; // [0: No, 1: Yes]
-
-// [Flat top only] Thickness of that layer (one or two print layers)
-flat_bridge_layer_thickness = 0.2; // [0.1:0.05:0.6]
+// Corner rounding radius for blending the egg shell (mm)
+casing_rounding = 4.0; // [1.0:0.5:8.0]
 
 /* [Base ring] */
 
@@ -216,7 +207,7 @@ base_ring_roundness = 0.33; // [0:0.01:1]
 wavy_base = 1; // [0: Flat, 1: Wavy]
 
 // If the base ring has a wave, set the angle of the wave
-wave_angle = 16; // [0:45]
+wave_angle = 8; // [0:45]
 
 /* [Lock] */
 
@@ -253,10 +244,10 @@ lock_shaft_l = 26;
 lock_margin = 0.25; // [0:0.01:1]
 
 // Extra vertical slot play in inner dovetail lock hole along sliding axis to absorb 3D print layer variations (mm)
-lock_vertical_play = 0.0; // [0:0.05:1.5]
+lock_vertical_play = 0.45; // [0:0.05:1.5]
 
 // Side clearance margin per side for inner dovetail sliding between outer wings (mm)
-lock_dovetail_margin = 0.3; // [0:0.05:1]
+lock_dovetail_margin = 0.2; // [0:0.05:1]
 
 // If the two parts slide too stiffly, add some space here
 part_margin = 0.2; // [0:0.01:1]
@@ -308,11 +299,11 @@ r1 = cage_bar_thickness/2;
 r2 = base_ring_thickness/2;
 r3 = cage_ring_thickness/2;
 
-// Total dorsal extension of vibe chamber = watch thickness + tolerance + 2*wall thickness
-vibe_chamber_depth = vibe_watch_thickness + part_margin + 2*solid_wall_thickness;
+// Total dorsal extension of watch chamber = watch thickness + tolerance + 2*wall thickness
+watch_chamber_depth = watch_thickness + part_margin + 2*solid_wall_thickness;
 
 // Lock elevation offset along X axis (adjusted so lock sliding plane is flush with the flat top of the cage)
-lock_offset_x = d_shape ? (vibe_chamber_depth - (r3 + mount_width/2)) : 0;
+lock_offset_x = d_shape ? (watch_chamber_depth - (r3 + mount_width/2)) : 0;
 
 // Length of cage
 cage_length = max(penis_length-gap, glans_cage_height+(R1+r1)*sin(tilt));
@@ -371,8 +362,8 @@ module make() {
   cage();
   make_base();
   if (lock_type == 1 && show_lock) %lock_position() fusion_lock_body(show_lock == 2 ? lock_turn : 0, lock_clockwise);
-  if (d_shape && show_vibe_watch) %vibe_watch_in_cage();
-  if (d_shape && charger_slot && show_charger) %vibe_charger_mockup();
+  if (d_shape && show_watch) %watch_in_cage();
+  if (d_shape && charger_slot && show_charger) %watch_charger_mockup();
   if (do_bolt) {
     if (separate_parts_effective) {
       translate([cage_diameter + 15, -15, 0]) lock_bolt();
@@ -479,41 +470,34 @@ module rounded_cylinder(r, h, r2, center=false) {
 }
 
 module cage() {
-  if (flat_top || solid_wall) {
-    // Closed shapes: keep the lock block and the ring out of the cavity, flush with the inner surface
+  if (solid_wall) {
+    // Solid wall version:
     difference() {
       union() {
-        if (flat_top) {
-          // The flat cap's wall is upright but the lock pieces slide along a tilted plane:
-          // trim the wall back to that plane so the base part's lock pieces clear it
+        if (d_shape) {
+          cage_solid_wall();
+          watch_case_outer();
+          if (rounded_casing) watch_rounded_casing();
+          lock_dovetail_inner();
+        } else {
           difference() {
-            flat_cap();
+            union() {
+              cage_solid_wall();
+              skewxz(tan(tilt)) profile_torus(R1+(r1+r3)/2, r1+r3, 2*r3, base_ring_roundness*r2/(r1+r3)*2);
+            }
             lock_slide_clearance();
           }
-        } else {
-          if (d_shape) {
-            cage_solid_wall();
-            vibe_watch_case_outer();
-            lock_dovetail_inner();
-          } else {
-            difference() {
-              union() {
-                cage_solid_wall();
-                skewxz(tan(tilt)) profile_torus(R1+(r1+r3)/2, r1+r3, 2*r3, base_ring_roundness*r2/(r1+r3)*2);
-              }
-              lock_slide_clearance();
-            }
-            cage_lock();
-          }
+          cage_lock();
         }
       }
       cage_cavity();
       if (d_shape) {
-        vibe_watch_pocket();
-        if (vibe_screen_opening) vibe_screen_window();
-        if (charger_slot) vibe_charger_slot();
+        watch_pocket();
+        if (watch_screen_opening) watch_screen_window();
+        if (charger_slot) watch_charger_slot();
+        lock_cavity(z_slop=lock_vertical_play/2);
       }
-      if (solid_wall && vent_slots) cage_vent_slots();
+      if (vent_slots) cage_vent_slots();
     }
   } else {
     // Bars version:
@@ -523,7 +507,8 @@ module cage() {
         glans_cap(); // The cap
         profile_torus(R1+r1, 2*r3, 2*r3, base_ring_roundness*r2/r3); // Cage base ring, same edge radius as the base ring
         if (d_shape) {
-          vibe_watch_case_outer();
+          watch_case_outer();
+          if (rounded_casing) watch_rounded_casing();
           lock_dovetail_inner();
         } else {
           cage_lock();
@@ -531,9 +516,10 @@ module cage() {
       }
       if (d_shape) {
         cage_volume(R1, open_bottom=true);
-        vibe_watch_pocket();
-        if (vibe_screen_opening) vibe_screen_window();
-        if (charger_slot) vibe_charger_slot();
+        watch_pocket();
+        if (watch_screen_opening) watch_screen_window();
+        if (charger_slot) watch_charger_slot();
+        lock_cavity(z_slop=lock_vertical_play/2);
       }
     }
   }
@@ -560,18 +546,18 @@ module cage_vent_slots() {
 }
 
 // Watch seated inside the D-shape chamber, resting against the back (body side) at Z = 0
-module vibe_watch_in_cage() {
+module watch_in_cage() {
   skewxz(tan(tilt)) {
-    // Watch body: from Z = 0 to Z = vibe_watch_length
-    translate([-(R1 + solid_wall_thickness + (vibe_watch_thickness + part_margin)/2), 0, vibe_watch_length/2])
+    // Watch body: from Z = 0 to Z = watch_length
+    translate([-(R1 + solid_wall_thickness + (watch_thickness + part_margin)/2), 0, watch_length/2])
       color("darkslategray", 0.9)
-        rounded_cube([vibe_watch_thickness, 36.0, vibe_watch_length], 2.5, center=true);
+        rounded_cube([watch_thickness, 36.0, watch_length], 2.5, center=true);
         
     lug_y = (20.0 + 3.5) / 2;
-    lug_x = -(R1 + solid_wall_thickness + (vibe_watch_thickness + part_margin)/2 - 5.5/2 + 2.25);
-    // Glans side lugs: extending forward from vibe_watch_length
+    lug_x = -(R1 + solid_wall_thickness + (watch_thickness + part_margin)/2 - 5.5/2 + 2.25);
+    // Glans side lugs: extending forward from watch_length
     for (side = [-1, 1]) {
-      translate([lug_x, side * lug_y, vibe_watch_length + 3.05/2])
+      translate([lug_x, side * lug_y, watch_length + 3.05/2])
         color("slategray", 0.9)
           rounded_cube([4.5, 3.5, 3.05], 1.0, center=true);
     }
@@ -585,17 +571,17 @@ module vibe_watch_in_cage() {
 }
 
 // Outer solid housing for the watch, extending along the tilted shaft to fully enclose the watch
-module vibe_watch_case_outer() {
+module watch_case_outer() {
   t = solid_wall_thickness;
   pm = part_margin;
   lug_ext = 3.05;
   lug_len_clear = lug_ext + pm + 0.5;
-  case_z_end = vibe_watch_length + lug_len_clear + t + 2.5; // ~51mm, tall robust roof from 05bc78c
+  case_z_end = watch_length + lug_len_clear + t + 2.5; // ~51mm, tall robust roof
   z_case_base = -r3;
   case_len = case_z_end - z_case_base;
   
-  box_w = vibe_top_width + 2*t;
-  box_h = vibe_watch_thickness + pm + 2*t;
+  box_w = watch_top_width + 2*t;
+  box_h = watch_thickness + pm + 2*t;
   x_center = -(R1 + box_h/2);
   
   skewxz(tan(tilt)) {
@@ -604,64 +590,185 @@ module vibe_watch_case_outer() {
   }
 }
 
+// 2D arch profile: flat bottom at x = -R1, smooth rounded arch with crown and corner rounding
+module egg_arch_2d(h, w, cr) {
+  cr_safe = max(0.5, min(cr, h - 0.5, w - 0.5));
+  hull() {
+    // Bottom flat edge at x = -R1
+    translate([-R1 - 0.05, -w]) square([0.1, 2*w]);
+    // Top-left and top-right rounded corners
+    for (side = [-1, 1]) {
+      translate([-(R1 + h - cr_safe), side * (w - cr_safe)])
+        circle(r=cr_safe, $fn=32);
+    }
+    // Top center crown point
+    translate([-(R1 + h), 0])
+      circle(r=max(0.5, cr_safe/2), $fn=24);
+  }
+}
+
+// Clearance cut to ensure rounded_casing never enters the sliding path of the mating outer lock wings
+module lock_wings_clearance() {
+  wing_w = mount_length/3 + 2*lock_dovetail_margin;
+  for (side = [-1, 1]) {
+    translate([0, side * mount_length/3, 0]) {
+      hull() {
+        dz(-part_margin - r3) lock_case_shape(wing_w, outer=true);
+        dz(mount_height*cos(tilt) + 10) lock_case_shape(wing_w, outer=true);
+      }
+    }
+  }
+}
+
+// Smooth egg-shell casing wrapping the watch cabinet and lock receiver
+// Formed by a continuous smooth egg loft that encloses the 8 corners of the watch cabinet
+// and the top of the key dovetail part, with smooth curvature (no straight lines),
+// without extending downwards (x+) or backwards (z-), and keeping the lock receptacle clear.
+module watch_rounded_casing() {
+  t = solid_wall_thickness;
+  pm = part_margin;
+  box_w = watch_top_width + 2*t;
+  box_h = watch_thickness + pm + 2*t;
+  
+  // Longitudinal bounds along the tilted shaft
+  z_back = -r3;
+  lug_ext = 3.05;
+  lug_len_clear = lug_ext + pm + 0.5;
+  case_z_end = watch_length + lug_len_clear + t + 2.5;
+  z_front = case_z_end;
+  z_nose = z_front + casing_front_blend;
+  L_tot = z_nose - z_back;
+  
+  // Lock receiver position:
+  z_lock = mount_height * cos(tilt);
+  u_lock = (z_lock - z_back) / L_tot;
+  u_front = (z_front - z_back) / L_tot;
+  
+  // Height needed over the lock key dovetail cylinder:
+  h_lock_apex = box_h + 4.0;
+  
+  cr = casing_rounding;
+  
+  // Number of smooth lofting slices along Z:
+  N = 24;
+  
+  // Helper function for height at fraction u in [0, 1]
+  function egg_h(u) =
+    (u <= u_front)
+      ? (u <= u_lock
+          ? (box_h + 1.0 + (h_lock_apex - box_h - 1.0 + casing_top_bump) * sin((u / u_lock) * 90))
+          : (let(v = (u - u_lock) / (u_front - u_lock))
+              box_h + 2.0 + (h_lock_apex + casing_top_bump - box_h - 2.0) * cos(v * 75)))
+      : (let(w = (u - u_front) / (1.0 - u_front))
+          max(t, t + (egg_h(u_front) - t) * cos(w * 90)));
+
+  w_lock = (mount_length/3 - 2*lock_dovetail_margin) / 2;
+  w_watch = box_w/2;
+
+  // Helper function for half-width at fraction u in [0, 1]
+  // Keeps the lock region (u <= u_lock) strictly at w_lock so the lock can slide in from the side,
+  // then smoothly fans outward over the watch body to the full flank width
+  function egg_w(u) =
+    (u <= u_front)
+      ? (u <= u_lock
+          ? w_lock
+          : (let(v = (u - u_lock) / (u_front - u_lock))
+              w_lock + (w_watch - w_lock) * sin(v * 90) + casing_side_bump * sin(v * 180)))
+      : (let(w = (u - u_front) / (1.0 - u_front))
+          max(0.5, (box_w/2) * cos(w * 90)));
+
+  difference() {
+    skewxz(tan(tilt)) {
+      for (k = [0 : N - 1]) {
+        u0 = k / N;
+        u1 = (k + 1) / N;
+        z0 = z_back + u0 * L_tot;
+        z1 = z_back + u1 * L_tot;
+        
+        h0 = egg_h(u0);
+        h1 = egg_h(u1);
+        w0 = egg_w(u0);
+        w1 = egg_w(u1);
+        
+        cr0 = min(cr, h0 * 0.4, w0 * 0.4);
+        cr1 = min(cr, h1 * 0.4, w1 * 0.4);
+        
+        hull() {
+          translate([0, 0, z0])
+            linear_extrude(height=0.01)
+              egg_arch_2d(h0, w0, cr0);
+          translate([0, 0, z1])
+            linear_extrude(height=0.01)
+              egg_arch_2d(h1, w1, cr1);
+        }
+      }
+    }
+    // Protect the lock receptacle: keep the lock cavity and sliding wings completely clear
+    lock_cavity(z_slop=lock_vertical_play/2);
+    lock_wings_clearance();
+  }
+}
+
 // Inner cavity for the watch body and glans lugs:
 // Keeps the bottom wall (floor) intact between watch and penis cavity (no extra_through into lumen)!
 // Opens completely through the body end (Z <= -r3) so the watch slides in freely!
-module vibe_watch_pocket() {
+module watch_pocket() {
   t = solid_wall_thickness;
   pm = part_margin;
   lug_ext = 3.05;
   lug_len_clear = lug_ext + pm + 0.5;
-  cavity_t = vibe_watch_thickness + pm;
-  cavity_w = vibe_top_width;
+  cavity_t = watch_thickness + pm;
+  cavity_w = watch_top_width;
   x_pocket_center = -(R1 + t + cavity_t/2);
   
   skewxz(tan(tilt)) {
-    // 1. Watch body slot extending from outside (z = -r3 - 10) through the body end to vibe_watch_length + pm
+    // 1. Watch body slot extending from outside (z = -r3 - 10) through the body end to watch_length + pm
     // Exactly bounded in X, preserving the bottom wall (floor) separating watch from penis
     z_start = -r3 - 10;
-    z_end = vibe_watch_length + pm;
+    z_end = watch_length + pm;
     p_len = z_end - z_start;
     translate([x_pocket_center, 0, z_start + p_len/2])
       cube([cavity_t, cavity_w, p_len], center=true);
       
-    // 2. Glans lug cavity: from vibe_watch_length to vibe_watch_length + lug_len_clear
+    // 2. Glans lug cavity: from watch_length to watch_length + lug_len_clear
     lug_y = (20.0 + 3.5) / 2;
     lug_w = 4.8;
     lug_h = 5.5;
     lug_x = x_pocket_center - cavity_t/2 + lug_h/2;
-    z_lug_start = vibe_watch_length - 0.2;
-    z_lug_len = lug_len_clear + 0.4;
+    z_lug_start = watch_length - 0.2;
+    // When front_lug_ports is enabled, push the lug holes through the front of the case for water spray cleaning
+    z_lug_len = front_lug_ports ? (lug_len_clear + 35) : (lug_len_clear + 0.4);
     
     for (side = [-1, 1]) {
       translate([lug_x, side * lug_y, z_lug_start + z_lug_len/2])
         rounded_cube([lug_h, lug_w, z_lug_len], 1.0, center=true);
     }
-    // Center clearance between lugs
-    translate([lug_x, 0, z_lug_start + z_lug_len/2])
-      rounded_cube([lug_h, 20.0 - 2*pm, z_lug_len], 1.0, center=true);
+    // Center clearance between lugs (solid watch stop)
+    translate([lug_x, 0, z_lug_start + (lug_len_clear + 0.4)/2])
+      rounded_cube([lug_h, 20.0 - 2*pm, lug_len_clear + 0.4], 1.0, center=true);
   }
 }
 
 // Viewing/interaction window: full length forward from the lock block to the end of the watch body
-module vibe_screen_window() {
+module watch_screen_window() {
   t = solid_wall_thickness;
   pm = part_margin;
-  cavity_t = vibe_watch_thickness + pm;
+  cavity_t = watch_thickness + pm;
   x_pocket_center = -(R1 + t + cavity_t/2);
-  win_z_start = mount_height * cos(tilt) + vibe_screen_margin_z;
-  win_z_end = vibe_watch_length;
+  win_z_start = mount_height * cos(tilt) + watch_screen_margin_z;
+  win_z_end = watch_length;
   win_len = max(0.0, win_z_end - win_z_start);
-  win_w = min(vibe_screen_width, vibe_top_width - 2*2.5);
+  win_w = min(watch_screen_width, watch_top_width - 2*2.5);
+  cut_depth = 40 + t;
   if (win_len > 0) {
     skewxz(tan(tilt))
-      translate([x_pocket_center - cavity_t/2 - t/2, 0, win_z_start + win_len/2])
-        rounded_cube([t + 4, win_w, win_len], 2.0, center=true);
+      translate([x_pocket_center - cavity_t/2 - cut_depth/2 + 0.1, 0, win_z_start + win_len/2])
+        rounded_cube([cut_depth, win_w, win_len], 2.0, center=true);
   }
 }
 
 // Charger access slot on the side of the watch case to access the bottom of the watch
-module vibe_charger_slot() {
+module watch_charger_slot() {
   t = solid_wall_thickness;
   side = charger_slot_side; // -1 for Right (-Y), 1 for Left (+Y)
   
@@ -677,8 +784,8 @@ module vibe_charger_slot() {
   x_center = (x_top + x_bot) / 2;
   
   // Y span: from outer wall reaching inward across bottom of watch
-  y_outer = side * (vibe_top_width/2 + t + 6);
-  y_inner = side * (vibe_top_width/2 - charger_slot_reach);
+  y_outer = side * (watch_top_width/2 + t + 6);
+  y_inner = side * (watch_top_width/2 - charger_slot_reach);
   y_len = abs(y_outer - y_inner);
   y_center = (y_outer + y_inner) / 2;
   
@@ -696,7 +803,7 @@ module vibe_charger_slot() {
 }
 
 // Charger mockup seated in the access slot contacting the bottom of the watch (preview only)
-module vibe_charger_mockup() {
+module watch_charger_mockup() {
   t = solid_wall_thickness;
   side = charger_slot_side; // -1 for Right (-Y), 1 for Left (+Y)
   
@@ -705,8 +812,8 @@ module vibe_charger_mockup() {
   charger_thick = 5.0; // Thickness of charger head
   charger_reach = charger_slot_reach + 2;
   
-  y_outer = side * (vibe_top_width/2 + 2);
-  y_inner = side * (vibe_top_width/2 - charger_reach);
+  y_outer = side * (watch_top_width/2 + 2);
+  y_inner = side * (watch_top_width/2 - charger_reach);
   y_center = (y_outer + y_inner) / 2;
   y_len = abs(y_outer - y_inner);
   
@@ -720,7 +827,7 @@ module vibe_charger_mockup() {
         rounded_cube([charger_thick, y_len, 7.5], 1.0, center=true);
         
     // Cable lead extending out to the side
-    translate([x_center, side * (vibe_top_width/2 + 10), z_center])
+    translate([x_center, side * (watch_top_width/2 + 10), z_center])
       color("white", 0.9)
         rotate([0, 90, 0])
           cylinder(d=3.0, h=16, center=true);
@@ -733,14 +840,9 @@ module lock_slide_clearance() {
   dz(-r3) skewxz(tan(tilt)) translate([-100, -mount_length/2-1, 0]) cube([100-(R1+lock_offset_x+r3+mount_width/2), mount_length+2, h_lock]);
 }
 
-// Inside of the flat cap / solid wall, extended below the base so nothing is left hanging into it
+// Inside of the cage, extended below the base so nothing is left hanging into it
 module cage_cavity() {
-  if (flat_top) {
-    wall_h = max(flat_wall_height, 2*r3);
-    dz(-r3-1) cylinder(r=R1+r1-r3, h=wall_h-flat_plate_thickness+1);
-  } else {
-    cage_volume(R1, open_bottom=true);
-  }
+  cage_volume(R1, open_bottom=true);
 }
 
 // Solid wall along the path of the bars: straight segment, bend around P, and a domed cap with the slit.
@@ -824,7 +926,7 @@ module cage_volume(r, open_bottom=false) {
   }
   // Dome
   translate(R) ry(Phi+tilt) {
-    if (d_shape && (solid_wall || flat_top)) {
+    if (d_shape && solid_wall) {
       hull() {
         cage_section(r);
         translate([0, 0, r]) sphere(r/2, $fn=32);
@@ -862,32 +964,15 @@ module d_section_2d(r, extra_h, top_w, corner_r) {
 
 // A thin slice of the cage cross-section, in the XY plane
 module cage_section(r) {
-  if (d_shape && (solid_wall || flat_top)) {
+  if (d_shape && solid_wall) {
     extra_r = r - R1;
-    top_w = vibe_top_width + 2*extra_r;
-    extra_h = vibe_extra_height;
-    corner_r = vibe_corner_radius + extra_r;
+    top_w = watch_top_width + 2*extra_r;
+    extra_h = watch_extra_height;
+    corner_r = watch_corner_radius + extra_r;
     linear_extrude(height=0.01, center=true)
       d_section_2d(r, extra_h, top_w, corner_r);
   } else {
     cylinder(r=r, h=0.01, center=true);
-  }
-}
-
-// Flat cap: the cage ring grown upward into a wall, closed by a plate with holes
-module flat_cap() {
-  wall_h = max(flat_wall_height, 2*r3);
-  // Wall: the cage ring with a rectangular section, same edge radius as the base ring
-  dz(-r3+wall_h/2) profile_torus(R1+r1, 2*r3, wall_h, base_ring_roundness*r2/r3);
-  // Top plate, flush with the top of the wall
-  dz(-r3+wall_h-flat_plate_thickness) difference() {
-    cylinder(r=R1+r1, h=flat_plate_thickness);
-    // Holes start above the bridge layer when it is on, otherwise they go right through
-    hole_start = flat_bridge_layer ? flat_bridge_layer_thickness : -1;
-    dz(hole_start) {
-      if (flat_center_hole > 0) cylinder(d=flat_center_hole, h=flat_plate_thickness-hole_start+1);
-      if (flat_hole_count > 0) for (i = [0:flat_hole_count-1]) rz(i*360/flat_hole_count) dx(flat_hole_radius) cylinder(d=flat_hole_diameter, h=flat_plate_thickness-hole_start+1);
-    }
   }
 }
 
@@ -977,30 +1062,33 @@ module cage_bar_segments() {
 }
 
 module glans_cap() {
-  // First, ensure the slit width is within the bounds of the cage geometry
-  real_slit_width = max(min(slit_width, cage_diameter), 0.1);
+  // Clear space between front bars = slit_width; centerline distance = slit_width + 2*r1
+  c_slit_max = R1 + r1 - 0.5;
+  c_slit = min(max(slit_width, 0.1)/2 + r1, c_slit_max);
   translate(R) ry(Phi+tilt) {
     // Ring around base of glans cap
     ring_opening = (360/cage_bar_count);
     rotate([0,0,ring_opening/2])
       torus(R1+r1, r1, phi=(360-ring_opening));
     // Calculate the start and end points of the bars that create the front slit
-    slitRadius = (R1+r1)*cos(asin(real_slit_width/2/(R1+r1)));
-    slitStart = [slitRadius, -real_slit_width/2, 0];
+    slitRadius = (R1+r1)*cos(asin(c_slit/(R1+r1)));
+    slitStart = [slitRadius, -c_slit, 0];
     slitEnd = mx(slitStart);
     
-    // Draw slit bars
-    dy(-real_slit_width/2) rx(90) torus(slitRadius, r1, 180);
-    dy(real_slit_width/2) rx(90) torus(slitRadius, r1, 180);
-    dy(-real_slit_width/2) dx(slitRadius) sphere(r=r1);
-    dy(real_slit_width/2) dx(slitRadius) sphere(r=r1);
+    // Draw slit bars (clear space between them is exactly slit_width)
+    dy(-c_slit) rx(90) torus(slitRadius, r1, 180);
+    dy(c_slit) rx(90) torus(slitRadius, r1, 180);
+    dy(-c_slit) dx(slitRadius) sphere(r=r1);
+    dy(c_slit) dx(slitRadius) sphere(r=r1);
+    dy(-c_slit) dx(-slitRadius) sphere(r=r1);
+    dy(c_slit) dx(-slitRadius) sphere(r=r1);
     
     // Draw each cage bar (minus the part that would enter the slit area)
     *for (theta = [step/2:step:180-step/2]) {
       // Do not calculate/draw the bar if the bar begins within the slit area
-      if ((R1+r1)*sin(theta) > real_slit_width/2) {
+      if ((R1+r1)*sin(theta) > c_slit) {
         // Compute arc length of this side bar
-        distanceInSlit = (real_slit_width/2)/sin(theta);
+        distanceInSlit = c_slit/sin(theta);
         arcLength = acos(distanceInSlit/(R1+r1));
         rz(theta) rx(90) torus(R1+r1, r1, arcLength);
         rz(180+theta) rx(90) torus(R1+r1, r1, arcLength);
@@ -1010,8 +1098,8 @@ module glans_cap() {
 }
 
 module cage_lock() {
-  // Create the solid arc that interfaces with the mating parts (a flat cap, solid wall, or d_shape does this job itself)
-  if (!flat_top && !solid_wall && !d_shape) mount_arc();
+  // Create the solid arc that interfaces with the mating parts (a solid wall or d_shape does this job itself)
+  if (!solid_wall && !d_shape) mount_arc();
   // Create the flat plane on which the mating parts slide
   mount_flat();
   // Create the cage's piece of the lock
@@ -1028,17 +1116,23 @@ module lock_cavity(z_slop=0) {
   if (lock_type == 0) {
     dx(-R1-lock_offset_x-r3-mount_width/2-lock_lateral) ry(tilt) dz(lock_vertical) dy(19-mount_length/2) {
       stealth_lock(lock_margin, z_slop=z_slop);
+      // Runout cylinders extending out to the side so the lock can slide in from the side freely
       if (z_slop == 0) {
-        rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19);
+        rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19+50);
+        rx(90) cylinder(r=3.5+lock_margin, h=19+50);
       } else {
         hull() {
-          dz(-z_slop) rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19);
-          dz(z_slop)  rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19);
+          dz(-z_slop) rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19+50);
+          dz(z_slop)  rx(-90) cylinder(r=3.5+lock_margin, h=mount_length-19+50);
+        }
+        hull() {
+          dz(-z_slop) rx(90) cylinder(r=3.5+lock_margin, h=19+50);
+          dz(z_slop)  rx(90) cylinder(r=3.5+lock_margin, h=19+50);
         }
       }
     }
   } else {
-    lock_position() fusion_lock_cavity(lock_margin, lock_turn, lock_clockwise, ext=lock_key_depth+5, z_slop=z_slop);
+    lock_position() fusion_lock_cavity(lock_margin, lock_turn, lock_clockwise, ext=lock_key_depth+50, z_slop=z_slop);
   }
 }
 
@@ -1183,10 +1277,10 @@ module mount_arc(arcLength=60) {
 }
 
 module mount_flat() {
-  closed = flat_top || solid_wall || d_shape;
+  closed = solid_wall || d_shape;
   // On a closed shape the slab reaches in past the wall at its ends, so its sides run straight into the wall;
   // In d_shape, it attaches solidly to the outer roof of the watch cabinet
-  inner = closed ? (d_shape ? (R1 + vibe_chamber_depth - solid_wall_thickness) : sqrt(max(sq(R1) - sq(mount_length/2), 0))) : R1+lock_offset_x+r3-mount_width/2;
+  inner = closed ? (d_shape ? (R1 + watch_chamber_depth - solid_wall_thickness) : sqrt(max(sq(R1) - sq(mount_length/2), 0))) : R1+lock_offset_x+r3-mount_width/2;
   dz(-r3) skewxz(tan(tilt)) difference() {
     translate([-R1-lock_offset_x-r3-mount_width/2, -mount_length/2, 0]) rounded_cube([R1+lock_offset_x+r3+mount_width/2-inner, mount_length, mount_height*cos(tilt)+r3], rounding);
     // For the barred cage, keep the block outside the cage ring
@@ -1222,3 +1316,24 @@ module wavy_torus(R, r, pitch) {
     }
   }
 }
+
+// Backward-compatibility aliases for legacy vibe_* names
+vibe_top_width = watch_top_width;
+vibe_watch_length = watch_length;
+vibe_watch_thickness = watch_thickness;
+vibe_corner_radius = watch_corner_radius;
+vibe_extra_height = watch_extra_height;
+vibe_screen_opening = watch_screen_opening;
+vibe_screen_length = watch_screen_length;
+vibe_screen_width = watch_screen_width;
+vibe_screen_margin_z = watch_screen_margin_z;
+show_vibe_watch = show_watch;
+vibe_chamber_depth = watch_chamber_depth;
+
+module vibe_watch_in_cage() { watch_in_cage(); }
+module vibe_watch_case_outer() { watch_case_outer(); }
+module vibe_watch_pocket() { watch_pocket(); }
+module vibe_screen_window() { watch_screen_window(); }
+module vibe_charger_slot() { watch_charger_slot(); }
+module vibe_charger_mockup() { watch_charger_mockup(); }
+
