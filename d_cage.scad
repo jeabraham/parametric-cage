@@ -308,6 +308,14 @@ watch_top_width = !is_undef(watch_top_width) ? watch_top_width : (watch_body_wid
 vibe_watch_length = watch_body_length;
 vibe_watch_thickness = watch_thickness;
 vibe_top_width = watch_top_width;
+vibe_corner_radius = watch_corner_radius;
+vibe_extra_height = watch_extra_height;
+vibe_screen_opening = watch_screen_opening;
+vibe_screen_length = watch_screen_length;
+vibe_screen_width = watch_screen_width;
+vibe_screen_margin_z = watch_screen_margin_z;
+show_vibe_watch = show_watch;
+vibe_chamber_depth = watch_chamber_depth;
 
 // Lug extension length beyond watch body on each end (derived from full length and body length)
 lug_length = (watch_full_length - watch_body_length) / 2;
@@ -1392,19 +1400,7 @@ module wavy_torus(R, r, pitch) {
   }
 }
 
-// Backward-compatibility aliases for legacy vibe_* names
-vibe_top_width = watch_top_width;
-vibe_watch_length = watch_length;
-vibe_watch_thickness = watch_thickness;
-vibe_corner_radius = watch_corner_radius;
-vibe_extra_height = watch_extra_height;
-vibe_screen_opening = watch_screen_opening;
-vibe_screen_length = watch_screen_length;
-vibe_screen_width = watch_screen_width;
-vibe_screen_margin_z = watch_screen_margin_z;
-show_vibe_watch = show_watch;
-vibe_chamber_depth = watch_chamber_depth;
-
+// Backward-compatibility module aliases for legacy vibe_* names
 module vibe_watch_in_cage() { watch_in_cage(); }
 module vibe_watch_case_outer() { watch_case_outer(); }
 module vibe_watch_pocket() { watch_pocket(); }
