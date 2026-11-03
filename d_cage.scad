@@ -364,7 +364,14 @@ r3 = cage_ring_thickness/2;
 watch_chamber_depth = watch_thickness + part_margin + 2*solid_wall_thickness;
 
 // Lock elevation offset along X axis (elevates the lock mechanism above the watch roof with baseline part_margin + extra_top_clearance)
-lock_offset_x = d_shape ? (watch_chamber_depth + part_margin + extra_top_clearance - (r3 + mount_width/2)) : 0;
+// Mathematically accounts for watch case tilt rotation ((depth - t)/cos(tilt) + t) and dovetail skew offset (r3 * tan(tilt)):
+lock_offset_x = d_shape ? (
+  (watch_chamber_depth - solid_wall_thickness) / cos(tilt)
+  + solid_wall_thickness
+  + r3 * tan(tilt)
+  + extra_top_clearance
+  - (r3 + mount_width/2)
+) : 0;
 
 // Furthest forward point of watch cabinet in tilted world Z coordinates:
 z_glans_front_tilted = (-watch_shift_back + watch_body_length + part_margin + solid_wall_thickness) * cos(tilt) + (watch_thickness + part_margin + solid_wall_thickness) * sin(tilt);
@@ -563,6 +570,7 @@ module cage() {
         if (watch_screen_opening) watch_screen_window();
         if (charger_slot) watch_charger_slot();
         lock_cavity(z_slop=lock_vertical_play/2);
+        lock_wings_clearance();
       }
       if (vent_slots) cage_vent_slots();
     }
@@ -587,6 +595,7 @@ module cage() {
         if (watch_screen_opening) watch_screen_window();
         if (charger_slot) watch_charger_slot();
         lock_cavity(z_slop=lock_vertical_play/2);
+        lock_wings_clearance();
       }
     }
   }
@@ -685,16 +694,20 @@ module egg_arch_2d(h, w, cr) {
   }
 }
 
-// Clearance cut to ensure rounded_casing never enters the sliding path of the mating outer lock wings
+// Clearance cut to ensure rounded_casing and watch case never enter the sliding path of the mating outer lock wings
 module lock_wings_clearance() {
   wing_w = mount_length/3 + 2*lock_dovetail_margin;
-  for (side = [-1, 1]) {
-    translate([0, side * mount_length/3, 0]) {
-      hull() {
-        dz(-part_margin - r3) lock_case_shape(wing_w, outer=true);
-        dz(mount_height*cos(tilt) + 10) lock_case_shape(wing_w, outer=true);
+  intersection() {
+    for (side = [-1, 1]) {
+      translate([0, side * mount_length/3, 0]) {
+        hull() {
+          dz(-part_margin - r3 - 1) lock_case_shape(wing_w, outer=true);
+          dz(mount_height*cos(tilt) + 10) lock_case_shape(wing_w, outer=true);
+        }
       }
     }
+    dz(-r3) skewxz(tan(tilt)) dz(-r3) mx() dx(R1 + lock_offset_x + r3 + mount_width/2) dy(-mount_length)
+      cube([100, 2*mount_length, mount_height*cos(tilt) + 20]);
   }
 }
 

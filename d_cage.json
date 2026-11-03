@@ -257,7 +257,7 @@
             "charger_slot_width": "10",
             "d_shape": "1",
             "do_bolt": "0",
-            "extra_top_clearance": "0.65000000000000002",
+            "extra_top_clearance": "0.20000000000000001",
             "front_lug_ports": "1",
             "gap": "14",
             "haptic_button_clearance": "0",
