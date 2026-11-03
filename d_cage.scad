@@ -87,17 +87,35 @@ d_shape = 1; // [0: Circular, 1: D-Shape]
 // [Solid wall only] Extra dorsal height added to the extruded solid tube cross-section (has no effect on barred cage, where watch case depth is driven directly by watch thickness)
 watch_extra_height = 10.0; // [0:0.5:20]
 
-// Flat top width for the watch case (mm)
-watch_top_width = 36.4; // 36 + 2*tolerance wide
+// Width of the watch body (mm)
+watch_body_width = 36.0; // [25.0:0.1:45.0]
 
 // Corner rounding radius for D-shape top corners (mm)
 watch_corner_radius = 4.0; // [1.0:0.5:8.0]
 
-// Watch body length (mm)
-watch_length = 42.6;
+// Total length of watch from body-side lug tips to glans-side lug tips (mm)
+watch_full_length = 48.6; // [35.0:0.1:65.0]
 
-// Watch thickness (mm)
-watch_thickness = 13.0;
+// Length of watch body excluding lugs (mm)
+watch_body_length = 42.6; // [30.0:0.1:55.0]
+
+// Inside distance between left and right lugs for watch band (mm)
+watch_band_width = 20.0; // [12.0:0.5:26.0]
+
+// Thickness of the watch body (mm)
+watch_thickness = 13.0; // [8.0:0.1:20.0]
+
+// Width of each individual lug (mm)
+lug_width = 3.5; // [1.5:0.1:6.0]
+
+// Height/thickness of each lug perpendicular to watch face (mm)
+lug_height = 4.5; // [2.0:0.1:8.0]
+
+// Elevation of bottom of lugs above the bottom face of the watch (mm, 0 for flush)
+lug_loft_above_bottom = 0.0; // [0.0:0.1:5.0]
+
+// Distance watch is shifted back towards the body so body-side lugs straddle the lock tangent bridge (mm)
+watch_shift_back = 6.9; // [0:0.1:15.0]
 
 // Cut screen opening on top of watch case
 watch_screen_opening = 1; // [0: No, 1: Yes]
@@ -110,6 +128,9 @@ watch_screen_width = 36.0; // [15:0.5:36]
 
 // Solid roof margin above lock block before screen window starts (mm)
 watch_screen_margin_z = 5.0; // [2:0.5:15]
+
+// Extra forward extension of screen window to uncover haptic button at glans end (mm)
+haptic_button_clearance = 2.5; // [0:0.5:8.0]
 
 // Open front lug pockets through the front of the case for water spray cleaning
 front_lug_ports = 1; // [0: Closed, 1: Open spray ports]
@@ -184,7 +205,7 @@ casing_top_bump = 3.0; // [0.5:0.5:8.0]
 casing_side_bump = 2.5; // [0.5:0.5:8.0]
 
 // Front nose blend extension (mm, curves the front forward into an egg tip)
-casing_front_blend = 5.0; // [1.0:0.5:15.0]
+casing_front_blend = 1.0; // [0.0:0.5:10.0]
 
 // Corner rounding radius for blending the egg shell (mm)
 casing_rounding = 4.0; // [1.0:0.5:8.0]
@@ -270,6 +291,9 @@ lock_vertical_play = 0.45; // [0:0.05:1.5]
 // Side clearance margin per side for inner dovetail sliding between outer wings (mm)
 lock_dovetail_margin = 0.2; // [0:0.05:1]
 
+// Extra clearance between the watch holder roof and the base ring lock mechanism (mm)
+extra_top_clearance = 0.0; // [0:0.05:2.0]
+
 // If the two parts slide too stiffly, add some space here
 part_margin = 0.2; // [0:0.01:1]
 
@@ -279,6 +303,14 @@ part_margin = 0.2; // [0:0.01:1]
 wavy_base_effective = !is_undef(wavyBase) ? wavyBase : wavy_base;
 wave_angle_effective = !is_undef(waveAngle) ? waveAngle : wave_angle;
 separate_parts_effective = !is_undef(separateParts) ? separateParts : separate_parts;
+watch_length = !is_undef(watch_length) ? watch_length : watch_body_length;
+watch_top_width = !is_undef(watch_top_width) ? watch_top_width : (watch_body_width + 2*part_margin);
+vibe_watch_length = watch_body_length;
+vibe_watch_thickness = watch_thickness;
+vibe_top_width = watch_top_width;
+
+// Lug extension length beyond watch body on each end (derived from full length and body length)
+lug_length = (watch_full_length - watch_body_length) / 2;
 
 // Glans cage height (minimum is cage radius)
 glans_cage_height = cage_diameter/2.2; // [15:50]
@@ -323,8 +355,14 @@ r3 = cage_ring_thickness/2;
 // Total dorsal extension of watch chamber = watch thickness + tolerance + 2*wall thickness
 watch_chamber_depth = watch_thickness + part_margin + 2*solid_wall_thickness;
 
-// Lock elevation offset along X axis (adjusted so lock sliding plane is flush with the flat top of the cage)
-lock_offset_x = d_shape ? (watch_chamber_depth - (r3 + mount_width/2)) : 0;
+// Lock elevation offset along X axis (elevates the lock mechanism above the watch roof with baseline part_margin + extra_top_clearance)
+lock_offset_x = d_shape ? (watch_chamber_depth + part_margin + extra_top_clearance - (r3 + mount_width/2)) : 0;
+
+// Furthest forward point of watch cabinet in tilted world Z coordinates:
+z_glans_front_tilted = (-watch_shift_back + watch_body_length + part_margin + solid_wall_thickness) * cos(tilt) + (watch_thickness + part_margin + solid_wall_thickness) * sin(tilt);
+
+// Mathematically derived front end of watch cabinet (ends right in front of watch body):
+case_z_end = z_glans_front_tilted + 0.2; // ~41.0mm
 
 // Length of cage
 cage_length = max(penis_length-gap, glans_cage_height+(R1+r1)*sin(tilt));
@@ -566,48 +604,59 @@ module cage_vent_slots() {
   }
 }
 
-// Watch seated inside the D-shape chamber, resting against the back (body side) at Z = 0
+// Watch seated inside the D-shape chamber, pushed back towards the body by watch_shift_back
+// Physical watch has perpendicular sides (90-degree right angles, not a parallelogram)
 module watch_in_cage() {
-  skewxz(tan(tilt)) {
-    // Watch body: from Z = 0 to Z = watch_length
-    translate([-(R1 + solid_wall_thickness + (watch_thickness + part_margin)/2), 0, watch_length/2])
+  t = solid_wall_thickness;
+  z_body_start = -watch_shift_back;
+  translate([-(R1 + t), 0, 0]) ry(tilt) {
+    // 1. Watch body: 90-degree rectangular prism from z' = z_body_start to z_body_start + watch_body_length
+    translate([-watch_thickness/2, 0, z_body_start + watch_body_length/2])
       color("darkslategray", 0.9)
-        rounded_cube([watch_thickness, 36.0, watch_length], 2.5, center=true);
+        rounded_cube([watch_thickness, watch_body_width, watch_body_length], 2.5, center=true);
         
-    lug_y = (20.0 + 3.5) / 2;
-    lug_x = -(R1 + solid_wall_thickness + (watch_thickness + part_margin)/2 - 5.5/2 + 2.25);
-    // Glans side lugs: extending forward from watch_length
+    lug_y = (watch_band_width + lug_width) / 2;
+    // Lugs position in X based on lug_loft_above_bottom and lug_height:
+    lug_x = -(lug_loft_above_bottom + lug_height/2);
+    // Glans side lugs: extending forward from watch_body_length
     for (side = [-1, 1]) {
-      translate([lug_x, side * lug_y, watch_length + 3.05/2])
+      translate([lug_x, side * lug_y, z_body_start + watch_body_length + lug_length/2])
         color("slategray", 0.9)
-          rounded_cube([4.5, 3.5, 3.05], 1.0, center=true);
+          rounded_cube([lug_height, lug_width, lug_length], 1.0, center=true);
     }
-    // Body side lugs: extending backward from Z = 0
+    // Body side lugs: extending backward from z_body_start (straddling the tangent bridge)
     for (side = [-1, 1]) {
-      translate([lug_x, side * lug_y, -3.05/2])
+      translate([lug_x, side * lug_y, z_body_start - lug_length/2])
         color("slategray", 0.9)
-          rounded_cube([4.5, 3.5, 3.05], 1.0, center=true);
+          rounded_cube([lug_height, lug_width, lug_length], 1.0, center=true);
     }
   }
 }
 
-// Outer solid housing for the watch, extending along the tilted shaft to fully enclose the watch
+// Outer solid housing for the watch, perfectly parallel to the watch pocket
+// Guarantees uniform wall thickness on roof, floor, sides, and front (no thin spots, no extra front material)
 module watch_case_outer() {
   t = solid_wall_thickness;
   pm = part_margin;
-  lug_ext = 3.05;
-  lug_len_clear = lug_ext + pm + 0.5;
-  case_z_end = watch_length + lug_len_clear + t + 2.5; // ~51mm, tall robust roof
-  z_case_base = -r3;
-  case_len = case_z_end - z_case_base;
+  z_body_start = -watch_shift_back;
+  z_body_end = z_body_start + watch_body_length;
+  // Front of housing is exactly solid_wall_thickness in front of watch body:
+  z_front = z_body_end + pm + t;
+  z_back = -20;
+  z_len = z_front - z_back;
   
-  box_w = watch_top_width + 2*t;
+  box_w = watch_body_width + 2*pm + 2*t;
   box_h = watch_thickness + pm + 2*t;
-  x_center = -(R1 + box_h/2);
   
-  skewxz(tan(tilt)) {
-    translate([x_center, 0, z_case_base + case_len/2])
-      rounded_cube([box_h, box_w, case_len], 2.5, center=true);
+  difference() {
+    translate([-(R1 + t), 0, 0]) ry(tilt) {
+      // Box centered in Y, spanning from floor (x' = +t) to roof (x' = -(box_h - t))
+      translate([-box_h/2 + t, 0, z_back + z_len/2])
+        rounded_cube([box_h, box_w, z_len], 2.5, center=true);
+    }
+    // Cleanly trim the body side so it never extends past the base ring (Z < -r3):
+    translate([0, 0, -r3 - 50])
+      cylinder(r=100, h=50);
   }
 }
 
@@ -653,9 +702,6 @@ module watch_rounded_casing() {
   
   // Longitudinal bounds along the tilted shaft
   z_back = -r3;
-  lug_ext = 3.05;
-  lug_len_clear = lug_ext + pm + 0.5;
-  case_z_end = watch_length + lug_len_clear + t + 2.5;
   z_front = case_z_end;
   z_nose = z_front + casing_front_blend;
   L_tot = z_nose - z_back;
@@ -665,8 +711,8 @@ module watch_rounded_casing() {
   u_lock = (z_lock - z_back) / L_tot;
   u_front = (z_front - z_back) / L_tot;
   
-  // Height needed over the lock key dovetail cylinder:
-  h_lock_apex = box_h + 4.0;
+  // Height needed over the lock key dovetail cylinder (accounting for lock elevation clearance):
+  h_lock_apex = box_h + 4.0 + part_margin + extra_top_clearance;
   
   cr = casing_rounding;
   
@@ -677,9 +723,9 @@ module watch_rounded_casing() {
   function egg_h(u) =
     (u <= u_front)
       ? (u <= u_lock
-          ? (box_h + 1.0 + (h_lock_apex - box_h - 1.0 + casing_top_bump) * sin((u / u_lock) * 90))
+          ? (box_h + (h_lock_apex - box_h) * pow(u / u_lock, 2))
           : (let(v = (u - u_lock) / (u_front - u_lock))
-              box_h + 2.0 + (h_lock_apex + casing_top_bump - box_h - 2.0) * cos(v * 75)))
+              box_h + casing_top_bump * sin(v * 180) + (h_lock_apex - box_h) * cos(v * 90)))
       : (let(w = (u - u_front) / (1.0 - u_front))
           max(t, t + (egg_h(u_front) - t) * cos(w * 90)));
 
@@ -731,32 +777,33 @@ module watch_rounded_casing() {
 }
 
 // Inner cavity for the watch body and glans lugs:
-// Keeps the bottom wall (floor) intact between watch and penis cavity (no extra_through into lumen)!
-// Opens completely through the body end (Z <= -r3) so the watch slides in freely!
+// Formed with perpendicular right angles (90 degrees, not a parallelogram) so the physical watch fits perfectly
+// Keeps the bottom wall (floor) intact between watch and penis cavity!
+// Opens completely through the body end (z' <= -30) so the watch slides in freely!
 module watch_pocket() {
   t = solid_wall_thickness;
   pm = part_margin;
-  lug_ext = 3.05;
-  lug_len_clear = lug_ext + pm + 0.5;
+  lug_len_clear = lug_length + pm + 0.5;
   cavity_t = watch_thickness + pm;
   cavity_w = watch_top_width;
-  x_pocket_center = -(R1 + t + cavity_t/2);
+  z_body_start = -watch_shift_back;
+  z_body_end = z_body_start + watch_body_length;
   
-  skewxz(tan(tilt)) {
-    // 1. Watch body slot extending from outside (z = -r3 - 10) through the body end to watch_length + pm
-    // Exactly bounded in X, preserving the bottom wall (floor) separating watch from penis
-    z_start = -r3 - 10;
-    z_end = watch_length + pm;
+  translate([-(R1 + t), 0, 0]) ry(tilt) {
+    // 1. Watch body slot extending from outside (z' = -30) through the body end to z_body_end + pm
+    // Slices completely through the entrance with clearance so there is zero lip on floor, ceiling, or sides
+    z_start = -30;
+    z_end = z_body_end + pm;
     p_len = z_end - z_start;
-    translate([x_pocket_center, 0, z_start + p_len/2])
-      cube([cavity_t, cavity_w, p_len], center=true);
+    translate([-cavity_t/2, 0, z_start + p_len/2])
+      cube([cavity_t + 0.6, cavity_w, p_len], center=true);
       
-    // 2. Glans lug cavity: from watch_length to watch_length + lug_len_clear
-    lug_y = (20.0 + 3.5) / 2;
-    lug_w = 4.8;
-    lug_h = 5.5;
-    lug_x = x_pocket_center - cavity_t/2 + lug_h/2;
-    z_lug_start = watch_length - 0.2;
+    // 2. Glans lug cavity: positioned using watch_band_width, lug_width, lug_height, and lug_loft_above_bottom
+    lug_y = (watch_band_width + lug_width) / 2;
+    lug_w = lug_width + 2*pm + 0.5;
+    lug_h = lug_height + 2*pm + 0.5;
+    lug_x = -(lug_loft_above_bottom + lug_h/2);
+    z_lug_start = z_body_end - 0.2;
     // When front_lug_ports is enabled, push the lug holes through the front of the case for water spray cleaning
     z_lug_len = front_lug_ports ? (lug_len_clear + 35) : (lug_len_clear + 0.4);
     
@@ -764,9 +811,6 @@ module watch_pocket() {
       translate([lug_x, side * lug_y, z_lug_start + z_lug_len/2])
         rounded_cube([lug_h, lug_w, z_lug_len], 1.0, center=true);
     }
-    // Center clearance between lugs (solid watch stop)
-    translate([lug_x, 0, z_lug_start + (lug_len_clear + 0.4)/2])
-      rounded_cube([lug_h, 20.0 - 2*pm, lug_len_clear + 0.4], 1.0, center=true);
   }
 }
 
@@ -775,16 +819,19 @@ module watch_screen_window() {
   t = solid_wall_thickness;
   pm = part_margin;
   cavity_t = watch_thickness + pm;
-  x_pocket_center = -(R1 + t + cavity_t/2);
+  z_body_start = -watch_shift_back;
+  z_body_end = z_body_start + watch_body_length;
   win_z_start = mount_height * cos(tilt) + watch_screen_margin_z;
-  win_z_end = watch_length;
+  // Extends past watch body by haptic_button_clearance to uncover the haptic button at top glans end
+  win_z_end = z_body_end + haptic_button_clearance;
   win_len = max(0.0, win_z_end - win_z_start);
   win_w = min(watch_screen_width, watch_top_width - 2*2.5);
   cut_depth = 40 + t;
   if (win_len > 0) {
-    skewxz(tan(tilt))
-      translate([x_pocket_center - cavity_t/2 - cut_depth/2 + 0.1, 0, win_z_start + win_len/2])
+    translate([-(R1 + t), 0, 0]) ry(tilt) {
+      translate([-cavity_t - cut_depth/2 + 0.1, 0, win_z_start + win_len/2])
         rounded_cube([cut_depth, win_w, win_len], 2.0, center=true);
+    }
   }
 }
 
@@ -792,9 +839,10 @@ module watch_screen_window() {
 module watch_charger_slot() {
   t = solid_wall_thickness;
   side = charger_slot_side; // -1 for Right (-Y), 1 for Left (+Y)
+  z_body_start = -watch_shift_back;
   
-  // Z span: starting 3mm from body side with charger_slot_width along watch length
-  z_start = charger_slot_start;
+  // Z span: starting from body side of watch with charger_slot_width along watch length
+  z_start = z_body_start + charger_slot_start;
   z_len = charger_slot_width;
   z_center = z_start + z_len / 2;
   
@@ -827,9 +875,10 @@ module watch_charger_slot() {
 module watch_charger_mockup() {
   t = solid_wall_thickness;
   side = charger_slot_side; // -1 for Right (-Y), 1 for Left (+Y)
+  z_body_start = -watch_shift_back;
   
   // Center of 7.5mm charger along watch length
-  z_center = charger_slot_start + 7.5 / 2;
+  z_center = z_body_start + charger_slot_start + 7.5 / 2;
   charger_thick = 5.0; // Thickness of charger head
   charger_reach = charger_slot_reach + 2;
   
@@ -1004,7 +1053,7 @@ function calc_top_right_bar_theta(target_gap) =
 
 function bar_theta(i) =
   let(base_th = step/2 + i*step)
-  (d_shape && top_bar_gap > 0)
+  (d_shape && charger_slot && top_bar_gap > 0)
     ? (charger_slot_side == -1
         ? (abs(base_th - 247.5) < step/2 ? (360 - calc_top_right_bar_theta(top_bar_gap)) : base_th)
         : (abs(base_th - 112.5) < step/2 ? calc_top_right_bar_theta(top_bar_gap) : base_th))
@@ -1017,7 +1066,7 @@ function bar_straight_pt(u, th) =
 module cage_bar_segments() {
   for (i = [0 : cage_bar_count - 1]) {
     base_th = step/2 + i*step;
-    is_charger_bar = d_shape && top_bar_gap > 0 &&
+    is_charger_bar = d_shape && charger_slot && top_bar_gap > 0 &&
       (charger_slot_side == -1 ? (abs(base_th - 247.5) < step/2) : (abs(base_th - 112.5) < step/2));
 
     if (is_charger_bar && top_bar_bend && dQ > 5) {
@@ -1263,6 +1312,14 @@ module lock_dovetail_outer() {
       hull() {
         dz(-part_margin) dx(-part_margin) lock_case_shape(slot_w);
         dz(mount_height*cos(tilt) + 10) dx(-part_margin) lock_case_shape(slot_w);
+      }
+      // When d_shape, cut away the bridge so it is flush with the back face of the watch (+ part_margin tolerance):
+      if (d_shape) {
+        translate([-(R1 + solid_wall_thickness), 0, 0]) ry(tilt) {
+          z_flush = -watch_shift_back - part_margin;
+          translate([-watch_thickness/2, 0, z_flush + 60/2])
+            cube([watch_thickness + 20, bridge_w + 2, 60], center=true);
+        }
       }
     }
   }
